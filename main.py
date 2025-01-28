@@ -1,5 +1,6 @@
-import numpy as np
-
+import os
+import telebot
+from flask import Flask, request
 
 def get_liquid_table():
     """
@@ -53,7 +54,6 @@ def get_liquid_table():
         100: 0,
     }
 
-
 def get_vapor_table():
     """
     Таблица равновесия для пара: температура (°C) -> содержание спирта в паре (%).
@@ -106,7 +106,6 @@ def get_vapor_table():
         100: 0,
     }
 
-
 def linear_interpolation(x, x1, x2, y1, y2):
     """
     Выполняет линейную интерполяцию для заданных значений.
@@ -116,7 +115,6 @@ def linear_interpolation(x, x1, x2, y1, y2):
     :return: Интерполированное значение y.
     """
     return y1 + (y2 - y1) * (x - x1) / (x2 - x1)
-
 
 def find_closest_values(value, data):
     """
@@ -130,31 +128,6 @@ def find_closest_values(value, data):
         if data[i] <= value <= data[i + 1]:
             return data[i], data[i + 1]
     raise ValueError("Значение вне диапазона данных.")
-
-
-def correct_for_temperature(alcohol_content, distillate_temp):
-    """
-    Корректирует спиртуозность для приведения её к температуре 20°C.
-
-    :param alcohol_content: Спиртуозность при текущей температуре (%).
-    :param distillate_temp: Температура дистиллята (°C).
-    :return: Скорректированная спиртуозность при 20°C (%).
-    """
-    # Коэффициенты коррекции спиртуозности в зависимости от температуры
-    correction_table = {
-        10: 0.6,
-        15: 0.4,
-        20: 0.0,
-        25: -0.3,
-        30: -0.6
-    }
-    temp_values = list(correction_table.keys())
-    temp1, temp2 = find_closest_values(distillate_temp, temp_values)
-    correction1 = correction_table[temp1]
-    correction2 = correction_table[temp2]
-    correction = linear_interpolation(distillate_temp, temp1, temp2, correction1, correction2)
-    return alcohol_content + correction
-
 
 def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     """
@@ -183,21 +156,64 @@ def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     # Возвращаем спиртуозность пара (она соответствует дистилляту)
     return vapor_alcohol
 
+def correct_for_temperature(alcohol_content, distillate_temp):
+    """
+    Корректирует спиртуозность для приведения её к температуре 20°C.
+
+    :param alcohol_content: Спиртуозность при текущей температуре (%).
+    :param distillate_temp: Температура дистиллята (°C).
+    :return: Скорректированная спиртуозность при 20°C (%).
+    """
+    # Коэффициенты коррекции спиртуозности в зависимости от температуры
+    correction_table = {
+        10: 0.6,
+        15: 0.4,
+        20: 0.0,
+        25: -0.3,
+        30: -0.6
+    }
+    temp_values = list(correction_table.keys())
+    temp1, temp2 = find_closest_values(distillate_temp, temp_values)
+    correction1 = correction_table[temp1]
+    correction2 = correction_table[temp2]
+    correction = linear_interpolation(distillate_temp, temp1, temp2, correction1, correction2)
+    return alcohol_content + correction
+
+TOKEN = os.getenv("TOKEN")  # Токен бота из переменных среды
+bot = telebot.TeleBot(TOKEN)
+app = Flask(__name__)
+
+def main_menu():
+    """Возвращает главное меню бота."""
+    return "Этот бот для расчетов дробной дистилляции. Выбери функцию для расчета:\n/расчет_спиртуозности - Расчет спиртуозности"
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.send_message(message.chat.id, main_menu())
+
+@bot.message_handler(commands=['расчет_спиртуозности'])
+def calculate_start(message):
+    bot.send_message(message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 85.2 85.3 15):")
+
+@bot.message_handler(func=lambda m: True)
+def calculate(message):
+    try:
+        cube_temp, vapor_temp, distillate_temp = map(float, message.text.replace(",", ".").split())
+        liquid_table = get_liquid_table()
+        vapor_table = get_vapor_table()
+
+        alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
+        corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
+
+        bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
+    except Exception as e:
+        bot.send_message(message.chat.id, "Ошибка! Убедитесь, что ввели три числа через пробел.")
+
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "", 200
 
 if __name__ == "__main__":
-    # Получаем таблицы равновесия
-    liquid_table = get_liquid_table()
-    vapor_table = get_vapor_table()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-    # Ввод данных
-    cube_temp = float(input("Введите температуру в кубе (°C): ").replace(",", "."))
-    vapor_temp = float(input("Введите температуру в паровой зоне (°C): ").replace(",", "."))
-    distillate_temp = float(input("Введите температуру дистиллята (°C): ").replace(",", "."))
-
-    # Расчёт
-    try:
-        alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
-        corrected_alcohol_content = correct_for_temperature(alcohol_content, distillate_temp)
-        print(f"Спиртуозность дистиллята при 20°C: {corrected_alcohol_content:.1f}%")
-    except ValueError as e:
-        print(e)
