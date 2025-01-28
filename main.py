@@ -153,8 +153,11 @@ def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     vapor_alcohol2 = vapor_table[vapor_temp2]
     vapor_alcohol = linear_interpolation(vapor_temp, vapor_temp1, vapor_temp2, vapor_alcohol1, vapor_alcohol2)
 
-    # Возвращаем спиртуозность пара (она соответствует дистилляту)
-    return vapor_alcohol
+    # Рассчитываем итоговую спиртуозность
+    # Например, как среднее значение жидкой и паровой фаз
+    final_alcohol = (liquid_alcohol + vapor_alcohol) / 2
+
+    return final_alcohol
 
 def correct_for_temperature(alcohol_content, distillate_temp):
     """
