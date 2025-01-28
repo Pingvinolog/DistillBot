@@ -131,33 +131,26 @@ def find_closest_values(value, data):
 
 def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     """
-    Рассчитывает содержание спирта в дистилляте на основе температуры в кубе и паровой зоне.
-
-    :param cube_temp: Температура в перегонном кубе (°C).
-    :param vapor_temp: Температура в паровой зоне (°C).
-    :param liquid_table: Таблица равновесия для жидкости.
-    :param vapor_table: Таблица равновесия для пара.
-    :return: Содержание спирта в дистилляте (%).
+    Рассчитывает содержание спирта в дистилляте.
+    Учитывает зависимость пара от температуры жидкости.
     """
-    # Интерполяция для жидкости
+    # 1. Определяем спиртуозность жидкости
     cube_temps = list(liquid_table.keys())
     cube_temp1, cube_temp2 = find_closest_values(cube_temp, cube_temps)
     liquid_alcohol1 = liquid_table[cube_temp1]
     liquid_alcohol2 = liquid_table[cube_temp2]
     liquid_alcohol = linear_interpolation(cube_temp, cube_temp1, cube_temp2, liquid_alcohol1, liquid_alcohol2)
 
-    # Интерполяция для пара
+    # 2. Определяем спиртуозность пара (основываясь на таблице пара)
     vapor_temps = list(vapor_table.keys())
     vapor_temp1, vapor_temp2 = find_closest_values(vapor_temp, vapor_temps)
     vapor_alcohol1 = vapor_table[vapor_temp1]
     vapor_alcohol2 = vapor_table[vapor_temp2]
     vapor_alcohol = linear_interpolation(vapor_temp, vapor_temp1, vapor_temp2, vapor_alcohol1, vapor_alcohol2)
 
-    # Рассчитываем итоговую спиртуозность
-    # Например, как среднее значение жидкой и паровой фаз
-    final_alcohol = (liquid_alcohol + vapor_alcohol) / 2
+    # 3. Итог: используем только спиртуозность пара (реальный дистиллят)
+    return vapor_alcohol
 
-    return final_alcohol
 
 def correct_for_temperature(alcohol_content, distillate_temp):
     """
@@ -188,7 +181,7 @@ app = Flask(__name__)
 
 def main_menu():
     """Возвращает главное меню бота."""
-    return "Этот бот для расчетов дробной дистилляции. Выбери функцию для расчета\nНапример: Расчет спиртуозности"
+    return "Этот бот создан для расчета дробной дистилляции. Выбери функцию из списка /"
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -196,7 +189,7 @@ def start(message):
 
 @bot.message_handler(commands=['alcohol_calculation'])
 def calculate_start(message):
-    bot.send_message(message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 85.2 85.3 15):")
+    bot.send_message(message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
 
 @bot.message_handler(func=lambda m: True)
 def calculate(message):
