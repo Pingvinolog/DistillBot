@@ -185,13 +185,13 @@ app = Flask(__name__)
 
 def main_menu():
     """Возвращает главное меню бота."""
-    return "Этот бот для расчетов дробной дистилляции. Выбери функцию для расчета:\n/расчет_спиртуозности - Расчет спиртуозности"
+    return "Этот бот для расчетов дробной дистилляции. Выбери функцию для расчета:\n/Например: Расчет спиртуозности"
 
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, main_menu())
 
-@bot.message_handler(commands=['расчет_спиртуозности'])
+@bot.message_handler(commands=['alcohol_calculation'])
 def calculate_start(message):
     bot.send_message(message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 85.2 85.3 15):")
 
