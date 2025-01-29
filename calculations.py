@@ -68,20 +68,29 @@ def calculate_fractions(total_volume_liters, alcohol_content):
     :param alcohol_content: Крепость спиртосодержащей смеси (%).
     :return: Словарь с объемами фракций.
     """
-    total_volume_ml = total_volume_liters * 1000  # Переводим литры в миллилитры
-    absolute_alcohol = total_volume_ml * alcohol_content / 100
+    # Переводим литры в миллилитры
+    total_volume_ml = total_volume_liters * 1000
+    absolute_alcohol_ml = total_volume_ml * alcohol_content / 96.6
 
-    heads_by_volume = total_volume_ml * 0.05  # 5% от объема СС
-    heads_by_alcohol = absolute_alcohol * 0.15  # 15% от АС
-    body = total_volume_ml * 0.20  # 20% от объема СС
-    pre_tails = total_volume_ml * 0.02  # 2% от объема СС
-    tails = total_volume_ml * 0.10  # 10% от объема СС
+    # Учитываем реальную крепость спирта при отборе фракций
+    average_head_strength = 81.5  # Средняя крепость голов (в процентах)
+    average_body_strength = 77.0  # Средняя крепость тела (в процентах)
+    average_pre_tails_strength = 68.0  # Средняя крепость предхвостьев (в процентах)
+    average_tail_strength = 65.0  # Средняя крепость хвостов (в процентах)
 
+    # Расчет объемов фракций
+    heads_by_volume_ml = total_volume_ml * 0.05  # 5% от объема СС
+    heads_by_alcohol_ml = absolute_alcohol_ml * 0.15  # 15% от АС
+    body_ml = absolute_alcohol_ml * 0.18 / (average_body_strength / 100)  # 18% от АС
+    pre_tails_ml = absolute_alcohol_ml * 0.02 / (average_pre_tails_strength / 100)  # 2% от АС
+    tails_ml = absolute_alcohol_ml * 0.10 / (average_tail_strength / 100)  # 10% от АС
+
+    # Переводим обратно в литры
     return {
-        "heads_by_volume": heads_by_volume / 1000,  # Переводим обратно в литры
-        "heads_by_alcohol": heads_by_alcohol / 1000,
-        "body": body / 1000,
-        "pre_tails": pre_tails / 1000,
-        "tails": tails / 1000,
-        "absolute_alcohol": absolute_alcohol / 1000,
+        "absolute_alcohol": absolute_alcohol_ml / 1000,
+        "heads_by_volume": heads_by_volume_ml / 1000,
+        "heads_by_alcohol": heads_by_alcohol_ml / 1000,
+        "body": body_ml / 1000,
+        "pre_tails": pre_tails_ml / 1000,
+        "tails": tails_ml / 1000,
     }
