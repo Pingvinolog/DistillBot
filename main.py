@@ -2,6 +2,8 @@ import os
 import telebot
 from flask import Flask, request
 
+
+# Функция для получения таблицы равновесия жидкости
 def get_liquid_table():
     """
     Таблица равновесия для жидкости: температура (°C) -> содержание спирта в жидкости (%).
@@ -54,6 +56,8 @@ def get_liquid_table():
         100: 0,
     }
 
+
+# Функция для получения таблицы равновесия пара
 def get_vapor_table():
     """
     Таблица равновесия для пара: температура (°C) -> содержание спирта в паре (%).
@@ -106,6 +110,8 @@ def get_vapor_table():
         100: 0,
     }
 
+
+# Линейная интерполяция
 def linear_interpolation(x, x1, x2, y1, y2):
     """
     Выполняет линейную интерполяцию для заданных значений.
@@ -116,6 +122,8 @@ def linear_interpolation(x, x1, x2, y1, y2):
     """
     return y1 + (y2 - y1) * (x - x1) / (x2 - x1)
 
+
+# Поиск двух ближайших значений в массиве
 def find_closest_values(value, data):
     """
     Находит два ближайших значения в массиве.
@@ -129,38 +137,15 @@ def find_closest_values(value, data):
             return data[i], data[i + 1]
     raise ValueError("Значение вне диапазона данных.")
 
-def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
-    """
-    Рассчитывает содержание спирта в дистилляте.
-    Учитывает зависимость пара от температуры жидкости.
-    """
-    # 1. Определяем спиртуозность жидкости
-    cube_temps = list(liquid_table.keys())
-    cube_temp1, cube_temp2 = find_closest_values(cube_temp, cube_temps)
-    liquid_alcohol1 = liquid_table[cube_temp1]
-    liquid_alcohol2 = liquid_table[cube_temp2]
-    liquid_alcohol = linear_interpolation(cube_temp, cube_temp1, cube_temp2, liquid_alcohol1, liquid_alcohol2)
 
-    # 2. Определяем спиртуозность пара (основываясь на таблице пара)
-    vapor_temps = list(vapor_table.keys())
-    vapor_temp1, vapor_temp2 = find_closest_values(vapor_temp, vapor_temps)
-    vapor_alcohol1 = vapor_table[vapor_temp1]
-    vapor_alcohol2 = vapor_table[vapor_temp2]
-    vapor_alcohol = linear_interpolation(vapor_temp, vapor_temp1, vapor_temp2, vapor_alcohol1, vapor_alcohol2)
-
-    # 3. Итог: используем только спиртуозность пара (реальный дистиллят)
-    return vapor_alcohol
-
-
+# Коррекция спиртуозности для приведения к температуре 20°C
 def correct_for_temperature(alcohol_content, distillate_temp):
     """
     Корректирует спиртуозность для приведения её к температуре 20°C.
-
     :param alcohol_content: Спиртуозность при текущей температуре (%).
     :param distillate_temp: Температура дистиллята (°C).
     :return: Скорректированная спиртуозность при 20°C (%).
     """
-    # Коэффициенты коррекции спиртуозности в зависимости от температуры
     correction_table = {
         10: 0.6,
         15: 0.4,
@@ -175,41 +160,132 @@ def correct_for_temperature(alcohol_content, distillate_temp):
     correction = linear_interpolation(distillate_temp, temp1, temp2, correction1, correction2)
     return alcohol_content + correction
 
-TOKEN = os.getenv("TOKEN")  # Токен бота из переменных среды
+
+# Расчет содержания спирта в дистилляте
+def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
+    """
+    Рассчитывает содержание спирта в дистилляте.
+    Учитывает зависимость пара от температуры жидкости.
+    """
+    # Определяем спиртуозность жидкости через интерполяцию
+    cube_temps = list(liquid_table.keys())
+    cube_temp1, cube_temp2 = find_closest_values(cube_temp, cube_temps)
+    liquid_alcohol1 = liquid_table[cube_temp1]
+    liquid_alcohol2 = liquid_table[cube_temp2]
+    liquid_alcohol = linear_interpolation(cube_temp, cube_temp1, cube_temp2, liquid_alcohol1, liquid_alcohol2)
+
+    # Определяем спиртуозность пара через интерполяцию
+    vapor_temps = list(vapor_table.keys())
+    vapor_temp1, vapor_temp2 = find_closest_values(vapor_temp, vapor_temps)
+    vapor_alcohol1 = vapor_table[vapor_temp1]
+    vapor_alcohol2 = vapor_table[vapor_temp2]
+    vapor_alcohol = linear_interpolation(vapor_temp, vapor_temp1, vapor_temp2, vapor_alcohol1, vapor_alcohol2)
+
+    return vapor_alcohol
+
+
+# Расчет объемов фракций
+def calculate_fractions(total_volume, alcohol_content):
+    """
+    Рассчитывает объемы фракций дистиллята.
+    :param total_volume: Общий объем спиртосодержащей смеси (мл).
+    :param alcohol_content: Крепость спиртосодержащей смеси (%).
+    :return: Словарь с объемами фракций.
+    """
+    absolute_alcohol = total_volume * alcohol_content / 100
+
+    heads_by_volume = total_volume * 0.05  # 5% от объема СС
+    heads_by_alcohol = absolute_alcohol * 0.15  # 15% от АС
+    body = total_volume * 0.20  # 20% от объема СС
+    pre_tails = total_volume * 0.02  # 2% от объема СС
+    tails = total_volume * 0.10  # 10% от объема СС
+
+    return {
+        "heads_by_volume": heads_by_volume,
+        "heads_by_alcohol": heads_by_alcohol,
+        "body": body,
+        "pre_tails": pre_tails,
+        "tails": tails,
+        "absolute_alcohol": absolute_alcohol,
+    }
+
+
+# Токен бота из переменных среды
+TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
+
+# Главное меню бота
 def main_menu():
     """Возвращает главное меню бота."""
-    return "Этот бот создан для расчета дробной дистилляции. Выбери функцию из списка /"
+    return "Этот бот создан для расчета дробной дистилляции. Выберите функцию из списка:\n" \
+           "/alcohol_calculation — Рассчитать спиртуозность дистиллята.\n" \
+           "/fractions — Рассчитать объемы фракций."
 
+
+# Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, main_menu())
 
+
+# Обработчик команды /alcohol_calculation
 @bot.message_handler(commands=['alcohol_calculation'])
 def calculate_start(message):
-    bot.send_message(message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
+    bot.send_message(message.chat.id,
+                     "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
 
+
+# Обработчик команды /fractions
+@bot.message_handler(commands=['fractions'])
+def fractions_start(message):
+    bot.send_message(message.chat.id, "Введите объем спиртосодержащей смеси (мл) и её крепость (%), например: 47000 29")
+
+
+# Обработчик текстового ввода
 @bot.message_handler(func=lambda m: True)
-def calculate(message):
+def handle_input(message):
     try:
-        cube_temp, vapor_temp, distillate_temp = map(float, message.text.replace(",", ".").split())
-        liquid_table = get_liquid_table()
-        vapor_table = get_vapor_table()
+        input_values = message.text.replace(",", ".").split()
 
-        alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
-        corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
+        if len(input_values) == 3:  # Расчет спиртуозности
+            cube_temp, vapor_temp, distillate_temp = map(float, input_values)
+            liquid_table = get_liquid_table()
+            vapor_table = get_vapor_table()
+            alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
+            corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
+            bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
-        bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
+        elif len(input_values) == 2:  # Расчет фракций
+            total_volume, alcohol_content = map(float, input_values)
+            fractions = calculate_fractions(total_volume, alcohol_content)
+            response = (
+                f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} мл\n"
+                f"Головы (по объему): {fractions['heads_by_volume']:.2f} мл\n"
+                f"Головы (по АС): {fractions['heads_by_alcohol']:.2f} мл\n"
+                f"Тело: {fractions['body']:.2f} мл\n"
+                f"Предхвостья: {fractions['pre_tails']:.2f} мл\n"
+                f"Хвосты: {fractions['tails']:.2f} мл"
+            )
+            bot.send_message(message.chat.id, response)
+
+        else:
+            raise ValueError("Введите либо три числа (температуры), либо два числа (объем и крепость).")
+
+    except ValueError as e:
+        bot.send_message(message.chat.id, f"Ошибка: {e}")
     except Exception as e:
-        bot.send_message(message.chat.id, "Ошибка! Убедитесь, что ввели три числа через пробел.")
+        bot.send_message(message.chat.id, "Произошла неизвестная ошибка. Попробуйте снова.")
 
+
+# Обработчик вебхука
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
     return "", 200
 
+
+# Запуск сервера
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
