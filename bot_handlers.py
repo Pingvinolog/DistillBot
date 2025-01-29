@@ -37,17 +37,20 @@ def handle_input(message):
     try:
         input_values = message.text.replace(",", ".").split()
 
-        if message.text.startswith("alcohol_calculation"): # Расчет спиртуозности
-            cube_temp, vapor_temp, distillate_temp = map(float, input_values)
+        # Преобразуем строки в числа
+        value1, value2, value3 = map(float, input_values)
+
+        # Определяем, какую команду выполнять
+        if "/alcohol_calculation" in message.text:
+            cube_temp, vapor_temp, distillate_temp = value1, value2, value3
             liquid_table = get_liquid_table()
             vapor_table = get_vapor_table()
             alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
             corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
             bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
-
-        elif message.text.startswith("fractions"): # Расчет фракций
-            total_volume_liters, alcohol_content = map(float, input_values)
+        elif "/fractions" in message.text:
+            total_volume_liters, alcohol_content = value1, value2
             fractions = calculate_fractions(total_volume_liters, alcohol_content)
             response = (
                 f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} л\n"
@@ -59,26 +62,14 @@ def handle_input(message):
             )
             bot.send_message(message.chat.id, response)
 
-        else:
-            raise ValueError("Введите либо три числа (температуры), либо объем и крепость СС).")
-
     except ValueError as ve:
+        # Обработка ошибок ввода
         bot.send_message(message.chat.id, f"Ошибка ввода: {ve}")
 
     except Exception as e:
+        # Обработка всех остальных ошибок
         bot.send_message(message.chat.id, f"Произошла ошибка: {e}")
 
-# @bot.message_handler(func=lambda m: True)
-# def calculate(message):
-#     try:
-#         cube_temp, vapor_temp, distillate_temp = map(float, message.text.replace(",", ".").split())
-#         liquid_table = get_liquid_table()
-#         vapor_table = get_vapor_table()
-#         alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
-#         corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
-#         bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
-#     except Exception as e:
-#         bot.send_message(message.chat.id, "Ошибка! Убедитесь, что ввели три числа через пробел.")
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
