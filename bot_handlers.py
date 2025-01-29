@@ -9,15 +9,18 @@ TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
+# Главное меню бота
 def main_menu():
     """Возвращает главное меню бота."""
     return "Этот бот создан для расчета дробной дистилляции. Выберите функцию из списка:\n" \
            "/alcohol_calculation — Рассчитать спиртуозность дистиллята."
 
+# Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, main_menu())
 
+# Обработчик команды /alcohol_calculation
 @bot.message_handler(commands=['alcohol_calculation'])
 def calculate_start(message):
     bot.send_message(message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
@@ -36,5 +39,6 @@ def calculate(message):
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    bot.process_new_updates([TeleBot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
+    bot.process_new_updates([update])
     return "", 200
