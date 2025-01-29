@@ -74,16 +74,13 @@ def calculate_fractions(total_volume_liters, alcohol_content):
 
     # Учитываем реальную крепость спирта при отборе фракций
     average_head_strength = 81.5  # Средняя крепость голов (в процентах)
-    average_body_strength = 77.0  # Средняя крепость тела (в процентах)
-    average_pre_tails_strength = 68.0  # Средняя крепость предхвостьев (в процентах)
-    average_tail_strength = 65.0  # Средняя крепость хвостов (в процентах)
 
     # Расчет объемов фракций
-    heads_by_volume_ml = total_volume_ml * 0.05  # 5% от объема СС
+    heads_by_volume_ml = (total_volume_ml * 0.05 / average_head_strength) * 100  # 5% от объема СС
     heads_by_alcohol_ml = absolute_alcohol_ml * 0.15  # 15% от АС
-    body_ml = absolute_alcohol_ml * 0.18 / (average_body_strength / 100)  # 18% от АС
-    pre_tails_ml = absolute_alcohol_ml * 0.02 / (average_pre_tails_strength / 100)  # 2% от АС
-    tails_ml = absolute_alcohol_ml * 0.10 / (average_tail_strength / 100)  # 10% от АС
+    body_ml = total_volume_ml * 0.18 / 100  # 18% от объема СС
+    pre_tails_ml = total_volume_ml * 0.02 / 100  # 2% от объема СС
+    tails_ml = total_volume_ml * 0.10 / 100  # 10% от объема СС
 
     # Переводим обратно в литры
     return {
