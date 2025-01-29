@@ -1,10 +1,10 @@
 from telebot import TeleBot
 from flask import Flask, request
-from tables import get_liquid_table, get_vapor_table
-from calculations import calculate_alcohol_content, correct_for_temperature
+import os
 
-TOKEN = "YOUR_BOT_TOKEN"  # Замените на ваш токен
-bot = TeleBot(TOKEN)
+# Токен бота из переменных среды
+TOKEN = os.getenv("TOKEN")
+bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
 def main_menu():
