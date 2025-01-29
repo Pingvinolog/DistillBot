@@ -78,9 +78,9 @@ def calculate_fractions(total_volume_liters, alcohol_content):
     # Расчет объемов фракций
     heads_by_volume_ml = (total_volume_ml * 0.05 / average_head_strength) * 100  # 5% от объема СС
     heads_by_alcohol_ml = absolute_alcohol_ml * 0.15  # 15% от АС
-    body_ml = total_volume_ml * 0.18 / 100  # 18% от объема СС
-    pre_tails_ml = total_volume_ml * 0.02 / 100  # 2% от объема СС
-    tails_ml = total_volume_ml * 0.10 / 100  # 10% от объема СС
+    body_ml = total_volume_ml * 0.18  # 18% от объема СС
+    pre_tails_ml = total_volume_ml * 0.02  # 2% от объема СС
+    tails_ml = total_volume_ml * 0.10  # 10% от объема СС
 
     # Переводим обратно в литры
     return {
