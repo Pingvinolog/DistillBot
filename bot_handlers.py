@@ -1,6 +1,8 @@
 import os
 import telebot
 from flask import Flask, request
+from calculations import calculate_alcohol_content, correct_for_temperature
+from tables import get_liquid_table, get_vapor_table
 
 # Токен бота из переменных среды
 TOKEN = os.getenv("TOKEN")
