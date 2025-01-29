@@ -13,7 +13,7 @@ app = Flask(__name__)
 def main_menu():
     """Возвращает главное меню бота."""
     return "Этот бот создан для расчета дробной дистилляции. Выберите функцию из списка:\n" \
-           "/alcohol_calculation — Рассчитать спиртуозность дистиллята."\
+           "/alcohol_calculation — Рассчитать спиртуозность дистиллята.\n" \
            "/fractions — Рассчитать объемы фракций."
 
 # Обработчик команды /start
@@ -38,7 +38,7 @@ def handle_input(message):
     try:
         input_values = message.text.replace(",", ".").split()
 
-        if len(input_values) == 3:  # Расчет спиртуозности
+        if message.text.startswith("/alcohol_calculation"): # Расчет спиртуозности
             cube_temp, vapor_temp, distillate_temp = map(float, input_values)
             liquid_table = get_liquid_table()
             vapor_table = get_vapor_table()
@@ -46,7 +46,8 @@ def handle_input(message):
             corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
             bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
-        elif len(input_values) == 3:  # Расчет фракций
+
+        elif message.text.startswith("/fractions"):  # Расчет фракций
             total_volume_liters, alcohol_content, cube_volume_liters = map(float, input_values)
             fractions = calculate_fractions(total_volume_liters, alcohol_content)
             response = (
@@ -60,7 +61,7 @@ def handle_input(message):
             bot.send_message(message.chat.id, response)
 
         else:
-            raise ValueError("Введите либо три числа (температуры), либо три числа (объем, крепость, объем куба).")
+            raise ValueError("Введите либо три числа (температуры), либо объем и крепость СС).")
 
     except ValueError as e:
         bot.send_message(message.chat.id, f"Ошибка: {e}")
