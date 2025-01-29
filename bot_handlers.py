@@ -35,13 +35,10 @@ def fractions_start(message):
 @bot.message_handler(func=lambda m: True)
 def handle_input(message):
     try:
-        input_values = message.text.replace(",", ".").split()
-
-        # Преобразуем строки в числа
-        value1, value2, value3 = map(float, input_values)
-
         # Определяем, какую команду выполнять
         if "/alcohol_calculation" in message.text:
+            input_values = message.text.replace(",", ".").split()
+            value1, value2, value3 = map(float, input_values)
             cube_temp, vapor_temp, distillate_temp = value1, value2, value3
             liquid_table = get_liquid_table()
             vapor_table = get_vapor_table()
