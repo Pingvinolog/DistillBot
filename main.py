@@ -1,3 +1,4 @@
+import os  # Добавляем импорт модуля os
 from bot_handlers import app
 
 if __name__ == "__main__":
