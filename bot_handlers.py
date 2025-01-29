@@ -1,6 +1,6 @@
-from telebot import TeleBot
-from flask import Flask, request
 import os
+import telebot
+from flask import Flask, request
 
 # Токен бота из переменных среды
 TOKEN = os.getenv("TOKEN")
