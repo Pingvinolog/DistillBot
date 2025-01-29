@@ -48,7 +48,7 @@ def handle_input(message):
 
 
         elif message.text.startswith("/fractions"):  # Расчет фракций
-            total_volume_liters, alcohol_content, cube_volume_liters = map(float, input_values)
+            total_volume_liters, alcohol_content = map(float, input_values)
             fractions = calculate_fractions(total_volume_liters, alcohol_content)
             response = (
                 f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} л\n"
@@ -63,10 +63,11 @@ def handle_input(message):
         else:
             raise ValueError("Введите либо три числа (температуры), либо объем и крепость СС).")
 
-    except ValueError as e:
-        bot.send_message(message.chat.id, f"Ошибка: {e}")
+    except ValueError as ve:
+        bot.send_message(message.chat.id, f"Ошибка ввода: {ve}")
+
     except Exception as e:
-        bot.send_message(message.chat.id, "Произошла неизвестная ошибка. Попробуйте снова.")
+        bot.send_message(message.chat.id, f"Произошла ошибка: {e}")
 
 # @bot.message_handler(func=lambda m: True)
 # def calculate(message):
