@@ -31,14 +31,13 @@ def calculate_start(message):
 def fractions_start(message):
     bot.send_message(message.chat.id, "Введите объем спиртосодержащей смеси (л), её крепость (%) (например: 47 29):")
 
-
 # Обработчик текстового ввода
 @bot.message_handler(func=lambda m: True)
 def handle_input(message):
     try:
         input_values = message.text.replace(",", ".").split()
 
-        if message.text.startswith("/alcohol_calculation"): # Расчет спиртуозности
+        if message.text.startswith("alcohol_calculation"): # Расчет спиртуозности
             cube_temp, vapor_temp, distillate_temp = map(float, input_values)
             liquid_table = get_liquid_table()
             vapor_table = get_vapor_table()
@@ -47,7 +46,7 @@ def handle_input(message):
             bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
 
-        elif message.text.startswith("/fractions"):  # Расчет фракций
+        elif message.text.startswith("fractions"): # Расчет фракций
             total_volume_liters, alcohol_content = map(float, input_values)
             fractions = calculate_fractions(total_volume_liters, alcohol_content)
             response = (
