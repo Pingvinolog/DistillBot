@@ -2,113 +2,8 @@ import os
 import telebot
 from flask import Flask, request
 
-
-# Функция для получения таблицы равновесия жидкости
-def get_liquid_table():
-    """
-    Таблица равновесия для жидкости: температура (°C) -> содержание спирта в жидкости (%).
-    """
-    return {
-        78.15: 97.17,
-        78.5: 93.70,
-        79: 89.06,
-        79.5: 83.78,
-        80: 77.48,
-        80.5: 72.17,
-        81: 67.27,
-        81.5: 61.96,
-        82: 55.75,
-        82.5: 50.07,
-        83: 45.50,
-        83.5: 42.09,
-        84: 39.07,
-        84.5: 35.81,
-        85: 33.02,
-        85.5: 30.39,
-        86: 28.02,
-        86.5: 25.79,
-        87: 23.95,
-        87.5: 22.17,
-        88: 20.35,
-        88.5: 18.63,
-        89: 17.16,
-        89.5: 15.89,
-        90: 14.49,
-        90.5: 13.27,
-        91: 12.11,
-        91.5: 11.21,
-        92: 10.39,
-        92.5: 9.70,
-        93: 9.06,
-        93.5: 8.49,
-        94: 7.94,
-        94.5: 7.34,
-        95: 6.79,
-        95.5: 6.21,
-        96: 5.64,
-        96.5: 5.08,
-        97: 4.45,
-        97.5: 3.88,
-        98: 3.31,
-        98.5: 2.52,
-        99: 1.69,
-        99.5: 0.84,
-        100: 0,
-    }
-
-
-# Функция для получения таблицы равновесия пара
-def get_vapor_table():
-    """
-    Таблица равновесия для пара: температура (°C) -> содержание спирта в паре (%).
-    """
-    return {
-        78.15: 97.17,
-        78.5: 94.35,
-        79: 91.81,
-        79.5: 89.37,
-        80: 87.16,
-        80.5: 85.83,
-        81: 84.79,
-        81.5: 83.69,
-        82: 82.36,
-        82.5: 81.28,
-        83: 80.37,
-        83.5: 79.63,
-        84: 78.87,
-        84.5: 77.97,
-        85: 76.94,
-        85.5: 75.68,
-        86: 74.34,
-        86.5: 72.97,
-        87: 71.68,
-        87.5: 70.35,
-        88: 68.88,
-        88.5: 67.37,
-        89: 65.98,
-        89.5: 64.49,
-        90: 62.67,
-        90.5: 60.97,
-        91: 59.22,
-        91.5: 57.58,
-        92: 55.95,
-        92.5: 54.31,
-        93: 52.65,
-        93.5: 51.06,
-        94: 49.21,
-        94.5: 46.32,
-        95: 45.27,
-        95.5: 42.96,
-        96: 40.52,
-        96.5: 37.96,
-        97: 35.07,
-        97.5: 31.96,
-        98: 28.69,
-        98.5: 23.54,
-        99: 16.47,
-        99.5: 8.78,
-        100: 0,
-    }
+# Импортируем таблицы равновесия из отдельного файла
+from tables import get_liquid_table, get_vapor_table
 
 
 # Линейная интерполяция
@@ -164,8 +59,12 @@ def correct_for_temperature(alcohol_content, distillate_temp):
 # Расчет содержания спирта в дистилляте
 def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     """
-    Рассчитывает содержание спирта в дистилляте.
-    Учитывает зависимость пара от температуры жидкости.
+    Рассчитывает содержание спирта в дистилляте на основе температуры в кубе и паровой зоне.
+    :param cube_temp: Температура в перегонном кубе (°C).
+    :param vapor_temp: Температура в паровой зоне (°C).
+    :param liquid_table: Таблица равновесия для жидкости.
+    :param vapor_table: Таблица равновесия для пара.
+    :return: Содержание спирта в дистилляте (%).
     """
     # Определяем спиртуозность жидкости через интерполяцию
     cube_temps = list(liquid_table.keys())
@@ -184,30 +83,17 @@ def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     return vapor_alcohol
 
 
-# Расчет объемов фракций
-def calculate_fractions(total_volume, alcohol_content):
+# Расчет скорости отбора
+def calculate_collection_speed(total_volume, cube_volume):
     """
-    Рассчитывает объемы фракций дистиллята.
+    Рассчитывает рекомендуемую скорость отбора для тела.
     :param total_volume: Общий объем спиртосодержащей смеси (мл).
-    :param alcohol_content: Крепость спиртосодержащей смеси (%).
-    :return: Словарь с объемами фракций.
+    :param cube_volume: Объем куба (мл).
+    :return: Минимальная и максимальная скорость отбора (л/ч).
     """
-    absolute_alcohol = total_volume * alcohol_content / 100
-
-    heads_by_volume = total_volume * 0.05  # 5% от объема СС
-    heads_by_alcohol = absolute_alcohol * 0.15  # 15% от АС
-    body = total_volume * 0.20  # 20% от объема СС
-    pre_tails = total_volume * 0.02  # 2% от объема СС
-    tails = total_volume * 0.10  # 10% от объема СС
-
-    return {
-        "heads_by_volume": heads_by_volume,
-        "heads_by_alcohol": heads_by_alcohol,
-        "body": body,
-        "pre_tails": pre_tails,
-        "tails": tails,
-        "absolute_alcohol": absolute_alcohol,
-    }
+    min_speed = total_volume * 0.00036  # Коэффициент для мин. скорости
+    max_speed = total_volume * 0.00072  # Коэффициент для макс. скорости
+    return min_speed / 1000, max_speed / 1000  # Перевод в литры
 
 
 # Токен бота из переменных среды
@@ -221,7 +107,8 @@ def main_menu():
     """Возвращает главное меню бота."""
     return "Этот бот создан для расчета дробной дистилляции. Выберите функцию из списка:\n" \
            "/alcohol_calculation — Рассчитать спиртуозность дистиллята.\n" \
-           "/fractions — Рассчитать объемы фракций."
+           "/fractions — Рассчитать объемы фракций.\n" \
+           "/speed — Рассчитать скорость отбора."
 
 
 # Обработчик команды /start
@@ -240,7 +127,15 @@ def calculate_start(message):
 # Обработчик команды /fractions
 @bot.message_handler(commands=['fractions'])
 def fractions_start(message):
-    bot.send_message(message.chat.id, "Введите объем спиртосодержащей смеси (мл) и её крепость (%), например: 47000 29")
+    bot.send_message(message.chat.id,
+                     "Введите объем спиртосодержащей смеси (мл), её крепость (%) и объем куба (мл), например: 47000 29 600")
+
+
+# Обработчик команды /speed
+@bot.message_handler(commands=['speed'])
+def speed_start(message):
+    bot.send_message(message.chat.id,
+                     "Введите объем спиртосодержащей смеси (мл) и объем куба (мл), например: 47000 600")
 
 
 # Обработчик текстового ввода
@@ -257,21 +152,29 @@ def handle_input(message):
             corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
             bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
-        elif len(input_values) == 2:  # Расчет фракций
-            total_volume, alcohol_content = map(float, input_values)
+        elif len(input_values) == 3:  # Расчет фракций
+            total_volume, alcohol_content, cube_volume = map(float, input_values)
             fractions = calculate_fractions(total_volume, alcohol_content)
+            min_speed, max_speed = calculate_collection_speed(total_volume, cube_volume)
             response = (
                 f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} мл\n"
                 f"Головы (по объему): {fractions['heads_by_volume']:.2f} мл\n"
                 f"Головы (по АС): {fractions['heads_by_alcohol']:.2f} мл\n"
                 f"Тело: {fractions['body']:.2f} мл\n"
                 f"Предхвостья: {fractions['pre_tails']:.2f} мл\n"
-                f"Хвосты: {fractions['tails']:.2f} мл"
+                f"Хвосты: {fractions['tails']:.2f} мл\n"
+                f"Рекомендуемая скорость отбора: {min_speed:.2f}–{max_speed:.2f} л/ч"
             )
             bot.send_message(message.chat.id, response)
 
+        elif len(input_values) == 2:  # Расчет скорости отбора
+            total_volume, cube_volume = map(float, input_values)
+            min_speed, max_speed = calculate_collection_speed(total_volume, cube_volume)
+            bot.send_message(message.chat.id, f"Рекомендуемая скорость отбора: {min_speed:.2f}–{max_speed:.2f} л/ч")
+
         else:
-            raise ValueError("Введите либо три числа (температуры), либо два числа (объем и крепость).")
+            raise ValueError(
+                "Введите либо три числа (температуры), либо три числа (объем, крепость, объем куба), либо два числа (объем, объем куба).")
 
     except ValueError as e:
         bot.send_message(message.chat.id, f"Ошибка: {e}")
