@@ -84,16 +84,44 @@ def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
 
 
 # Расчет скорости отбора
-def calculate_collection_speed(total_volume, cube_volume):
+def calculate_collection_speed(total_volume_liters, cube_volume_liters):
     """
     Рассчитывает рекомендуемую скорость отбора для тела.
-    :param total_volume: Общий объем спиртосодержащей смеси (мл).
-    :param cube_volume: Объем куба (мл).
+    :param total_volume_liters: Общий объем спиртосодержащей смеси (л).
+    :param cube_volume_liters: Объем куба (л).
     :return: Минимальная и максимальная скорость отбора (л/ч).
     """
-    min_speed = total_volume * 0.00036  # Коэффициент для мин. скорости
-    max_speed = total_volume * 0.00072  # Коэффициент для макс. скорости
+    total_volume_ml = total_volume_liters * 1000  # Переводим литры в миллилитры
+    min_speed = total_volume_ml * 0.00036  # Коэффициент для мин. скорости
+    max_speed = total_volume_ml * 0.00072  # Коэффициент для макс. скорости
     return min_speed / 1000, max_speed / 1000  # Перевод в литры
+
+
+# Расчет объемов фракций
+def calculate_fractions(total_volume_liters, alcohol_content):
+    """
+    Рассчитывает объемы фракций дистиллята.
+    :param total_volume_liters: Общий объем спиртосодержащей смеси (л).
+    :param alcohol_content: Крепость спиртосодержащей смеси (%).
+    :return: Словарь с объемами фракций.
+    """
+    total_volume_ml = total_volume_liters * 1000  # Переводим литры в миллилитры
+    absolute_alcohol = total_volume_ml * alcohol_content / 100
+
+    heads_by_volume = total_volume_ml * 0.05  # 5% от объема СС
+    heads_by_alcohol = absolute_alcohol * 0.15  # 15% от АС
+    body = total_volume_ml * 0.20  # 20% от объема СС
+    pre_tails = total_volume_ml * 0.02  # 2% от объема СС
+    tails = total_volume_ml * 0.10  # 10% от объема СС
+
+    return {
+        "heads_by_volume": heads_by_volume / 1000,  # Переводим обратно в литры
+        "heads_by_alcohol": heads_by_alcohol / 1000,
+        "body": body / 1000,
+        "pre_tails": pre_tails / 1000,
+        "tails": tails / 1000,
+        "absolute_alcohol": absolute_alcohol / 1000,
+    }
 
 
 # Токен бота из переменных среды
@@ -128,14 +156,13 @@ def calculate_start(message):
 @bot.message_handler(commands=['fractions'])
 def fractions_start(message):
     bot.send_message(message.chat.id,
-                     "Введите объем спиртосодержащей смеси (мл), её крепость (%) и объем куба (мл), например: 47000 29 600")
+                     "Введите объем спиртосодержащей смеси (л), её крепость (%) и объем куба (л), например: 47 29 0.6")
 
 
 # Обработчик команды /speed
 @bot.message_handler(commands=['speed'])
 def speed_start(message):
-    bot.send_message(message.chat.id,
-                     "Введите объем спиртосодержащей смеси (мл) и объем куба (мл), например: 47000 600")
+    bot.send_message(message.chat.id, "Введите объем спиртосодержащей смеси (л) и объем куба (л), например: 47 0.6")
 
 
 # Обработчик текстового ввода
@@ -153,23 +180,23 @@ def handle_input(message):
             bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
         elif len(input_values) == 3:  # Расчет фракций
-            total_volume, alcohol_content, cube_volume = map(float, input_values)
-            fractions = calculate_fractions(total_volume, alcohol_content)
-            min_speed, max_speed = calculate_collection_speed(total_volume, cube_volume)
+            total_volume_liters, alcohol_content, cube_volume_liters = map(float, input_values)
+            fractions = calculate_fractions(total_volume_liters, alcohol_content)
+            min_speed, max_speed = calculate_collection_speed(total_volume_liters, cube_volume_liters)
             response = (
-                f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} мл\n"
-                f"Головы (по объему): {fractions['heads_by_volume']:.2f} мл\n"
-                f"Головы (по АС): {fractions['heads_by_alcohol']:.2f} мл\n"
-                f"Тело: {fractions['body']:.2f} мл\n"
-                f"Предхвостья: {fractions['pre_tails']:.2f} мл\n"
-                f"Хвосты: {fractions['tails']:.2f} мл\n"
+                f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} л\n"
+                f"Головы (по объему): {fractions['heads_by_volume']:.2f} л\n"
+                f"Головы (по АС): {fractions['heads_by_alcohol']:.2f} л\n"
+                f"Тело: {fractions['body']:.2f} л\n"
+                f"Предхвостья: {fractions['pre_tails']:.2f} л\n"
+                f"Хвосты: {fractions['tails']:.2f} л\n"
                 f"Рекомендуемая скорость отбора: {min_speed:.2f}–{max_speed:.2f} л/ч"
             )
             bot.send_message(message.chat.id, response)
 
         elif len(input_values) == 2:  # Расчет скорости отбора
-            total_volume, cube_volume = map(float, input_values)
-            min_speed, max_speed = calculate_collection_speed(total_volume, cube_volume)
+            total_volume_liters, cube_volume_liters = map(float, input_values)
+            min_speed, max_speed = calculate_collection_speed(total_volume_liters, cube_volume_liters)
             bot.send_message(message.chat.id, f"Рекомендуемая скорость отбора: {min_speed:.2f}–{max_speed:.2f} л/ч")
 
         else:
