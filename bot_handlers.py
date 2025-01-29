@@ -47,6 +47,8 @@ def handle_input(message):
             bot.send_message(message.chat.id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
 
         elif "/fractions" in message.text:
+            input_values = message.text.replace(",", ".").split()
+            value1, value2 = map(float, input_values)
             total_volume_liters, alcohol_content = value1, value2
             fractions = calculate_fractions(total_volume_liters, alcohol_content)
             response = (
