@@ -91,3 +91,26 @@ def calculate_fractions(total_volume_liters, alcohol_content):
         "pre_tails": pre_tails_ml / 1000,
         "tails": tails_ml / 1000,
     }
+
+
+def calculate_speed(cube_volume_liters, raw_spirit_liters):
+    """
+    Рассчитывает скорость отбора на основе объема куба и количества залитого спирта-сырца.
+    :param cube_volume_liters: Объем куба (л).
+    :param raw_spirit_liters: Количество залитого спирта-сырца (л).
+    :return: Скорость отбора (л/ч).
+    """
+    # Определяем коэффициент скорости от объема
+    if 20 <= cube_volume_liters <= 37:
+        speed_coefficient = 700
+    elif 50 <= cube_volume_liters <= 70:
+        speed_coefficient = 600
+    elif 70 < cube_volume_liters <= 100:
+        speed_coefficient = 500
+    else:
+        raise ValueError("Объем куба вне допустимого диапазона (20–100 литров).")
+
+    # Выполняем расчет скорости отбора по формуле:
+    speed = ((raw_spirit_liters * 0.35 / speed_coefficient) * 60) / 100
+
+    return speed

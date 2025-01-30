@@ -1,7 +1,7 @@
 import os
 import telebot
 from flask import Flask, request
-from calculations import calculate_alcohol_content, correct_for_temperature, calculate_fractions
+from calculations import calculate_alcohol_content, correct_for_temperature, calculate_fractions, calculate_speed
 from tables import get_liquid_table, get_vapor_table
 
 # Токен бота из переменных среды
@@ -17,7 +17,8 @@ def main_menu():
     """Возвращает главное меню бота."""
     return "Этот бот создан для расчета дробной дистилляции. Выберите функцию из списка:\n" \
            "/alcohol_calculation — Рассчитать спиртуозность дистиллята.\n" \
-           "/fractions — Рассчитать объемы фракций."
+           "/fractions — Рассчитать объемы фракций.\n" \
+           "/speed — Расчет скорости отбора."
 
 
 @bot.message_handler(commands=['start'])
@@ -40,6 +41,12 @@ def fractions_start(message):
     bot.send_message(message.chat.id,
                      "Введите объем спиртосодержащей смеси (л), её крепость (%) через пробел (например: 47 29):")
 
+@bot.message_handler(commands=['speed'])
+def speed_start(message):
+    # Устанавливаем состояние пользователя
+    user_states[message.chat.id] = "awaiting_speed_input"
+    bot.send_message(message.chat.id,
+                     "Введите объем куба (л) и количество залитого спирта-сырца (л) через пробел (например: 50 47):")
 
 @bot.message_handler(func=lambda m: True)
 def handle_input(message):
@@ -95,7 +102,27 @@ def handle_input(message):
                 del user_states[chat_id]
 
             except ValueError:
-                bot.send_message(chat_id, "Ошибка ввода: Введите три числа через пробел.")
+                bot.send_message(chat_id, "Ошибка ввода: Введите два числа через пробел.")
+
+            except Exception as e:
+                bot.send_message(chat_id, f"Произошла ошибка: {e}")
+
+        elif state == "awaiting_speed_input":
+            try:
+                # Разбиваем ввод на значения
+                cube_volume_liters, raw_spirit_liters = map(float, message.text.replace(",", ".").split())
+
+                # Выполняем расчет скорости отбора
+                speed = calculate_speed(cube_volume_liters, raw_spirit_liters)
+
+                # Отправляем результат пользователю
+                bot.send_message(chat_id, f"Скорость отбора: {speed:.2f} л/ч")
+
+                # Сбрасываем состояние пользователя
+                del user_states[chat_id]
+
+            except ValueError:
+                bot.send_message(chat_id, "Ошибка ввода: Введите два числа через пробел.")
 
             except Exception as e:
                 bot.send_message(chat_id, f"Произошла ошибка: {e}")
