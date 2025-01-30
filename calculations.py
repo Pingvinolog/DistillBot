@@ -110,7 +110,15 @@ def calculate_speed(cube_volume_liters, raw_spirit_liters):
     else:
         raise ValueError("Объем куба вне допустимого диапазона (20–100 литров).")
 
-    # Выполняем расчет скорости отбора по формуле:
-    speed = ((raw_spirit_liters * 0.35 / speed_coefficient) * 60) / 100
+    # Корректируем скорость отбора с учетом количества залитого спирта-сырца
+    spirit_ratio = raw_spirit_liters / cube_volume_liters  # Соотношение спирта к объему куба
+    if spirit_ratio < 0.5:
+        speed_coefficient *= 0.8  # Уменьшаем скорость, если спирта мало
+    elif spirit_ratio > 1.0:
+        speed_coefficient *= 1.2  # Увеличиваем скорость, если спирта много
 
-    return speed
+    # Выполняем расчет скорости отбора по формуле:
+    speed = (raw_spirit_liters * 0.35 / speed_coefficient) * 60
+    max_speed = speed * 2  # Определяем max_speed
+
+    return speed, max_speed

@@ -113,10 +113,12 @@ def handle_input(message):
                 cube_volume_liters, raw_spirit_liters = map(float, message.text.replace(",", ".").split())
 
                 # Выполняем расчет скорости отбора
-                speed = calculate_speed(cube_volume_liters, raw_spirit_liters)
+                speed, max_speed = calculate_speed(cube_volume_liters, raw_spirit_liters)
 
                 # Отправляем результат пользователю
-                bot.send_message(chat_id, f"Скорость отбора: {speed:.2f} л/ч")
+                bot.send_message(chat_id,
+                                 f"Минимальная скорость отбора: {speed:.2f} л/ч \n"
+                                 f"Максимальная скорость отбора: {max_speed:.2f} л/ч")
 
                 # Сбрасываем состояние пользователя
                 del user_states[chat_id]
