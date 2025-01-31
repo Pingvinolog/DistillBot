@@ -90,7 +90,7 @@ def show_constants(message):
 
 
 @bot.message_handler(commands=['set_constants'])
-def set_constants(message, update_constants):
+def set_constants(message):
     # Устанавливаем состояние пользователя
     user_states[message.chat.id] = "awaiting_set_constants_input"
     bot.send_message(message.chat.id,
@@ -98,7 +98,6 @@ def set_constants(message, update_constants):
         "объем_куба процент_голов процент_тела процент_предхвостьев процент_хвостов средняя_крепость_голов\n"
         "Пример: 50 5 20 2 10 81.5"
     )
-    bot.register_next_step_handler(message.chat.id, update_constants)
 
 @bot.message_handler(commands=['report'])
 def generate_report(message):
