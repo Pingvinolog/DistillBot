@@ -101,16 +101,17 @@ def calculate_fractions(total_volume_liters, alcohol_content):
     }
 
 
-def calculate_speed(raw_spirit_liters, constants=None):
+def calculate_speed(user_id, raw_spirit_liters):
     """
     Рассчитывает скорость отбора на основе объема куба и количества залитого спирта-сырца.
     :param user_id: ID пользователя.
     :param raw_spirit_liters: Количество залитого спирта-сырца (л).
     :return: Минимальная скорость (л/ч) и максимальная скорость (л/ч).
     """
-    # Если константы не переданы, используем значения по умолчанию
-    if constants is None:
-        constants = get_default_constants()
+
+    # Получаем константы пользователя или значения по умолчанию
+    constants = user_constants.get(user_id, get_default_constants())
+    cube_volume = constants["cube_volume"]
 
     # Извлекаем константы
     cube_volume = constants["cube_volume"]

@@ -206,7 +206,7 @@ def handle_input(message):
         elif state == "awaiting_speed_input":
             try:
                 # Разбиваем ввод на значения
-                raw_spirit_liters = list(map(float, message.text.replace(",", ".").split()))
+                raw_spirit_liters = float(message.text.replace(",", "."))
 
                 # Выполняем расчет скорости отбора
                 speed, max_speed = calculate_speed(chat_id, raw_spirit_liters[0])
