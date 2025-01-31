@@ -91,10 +91,9 @@ def show_constants(message):
 
 @bot.message_handler(commands=['set_constants'])
 def set_constants(message, update_constants):
-    chat_id = message.chat.id  # ID чата пользователя
-    user_states[chat_id] = "awaiting_set_constants_input"  # Устанавливаем состояние
-    bot.send_message(
-        chat_id,
+    # Устанавливаем состояние пользователя
+    user_states[message.chat.id] = "awaiting_set_constants_input"
+    bot.send_message(message.chat.id,
         "Введите новые значения через пробел в формате:\n"
         "объем_куба процент_голов процент_тела процент_предхвостьев процент_хвостов средняя_крепость_голов\n"
         "Пример: 50 5 20 2 10 81.5"
