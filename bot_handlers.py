@@ -209,7 +209,7 @@ def handle_input(message):
                 raw_spirit_liters = float(message.text.replace(",", "."))
 
                 # Выполняем расчет скорости отбора
-                speed, max_speed = calculate_speed(chat_id, raw_spirit_liters[0])
+                speed, max_speed = calculate_speed(chat_id, raw_spirit_liters, user_constants)
 
                 # Отправляем результат пользователю
                 bot.send_message(chat_id,
