@@ -68,6 +68,14 @@ def calculate_fractions(total_volume_liters, alcohol_content):
     :param alcohol_content: Крепость спиртосодержащей смеси (%).
     :return: Словарь с объемами фракций.
     """
+    # Извлекаем константы
+    # cube_volume = constants["сube_volume"]
+    # head_percentage = constants["head_percentage"]
+    # body_percentage = constants["body_percentage"]
+    # pre_tail_percentage = constants["pre_tail_percentage"]
+    # tail_percentage = constants["tail_percentage"]
+    # average_head_strength = constants["average_head_strength"]
+
     # Переводим литры в миллилитры
     total_volume_ml = total_volume_liters * 1000
     absolute_alcohol_ml = total_volume_ml * alcohol_content / 96.6
@@ -93,33 +101,29 @@ def calculate_fractions(total_volume_liters, alcohol_content):
     }
 
 
-def calculate_speed(user_id, raw_spirit_liters):
+def calculate_speed(raw_spirit_liters, constants=None):
     """
     Рассчитывает скорость отбора на основе объема куба и количества залитого спирта-сырца.
     :param user_id: ID пользователя.
     :param raw_spirit_liters: Количество залитого спирта-сырца (л).
     :return: Минимальная скорость (л/ч) и максимальная скорость (л/ч).
     """
-    # Получаем объем куба из констант пользователя
-    constants = user_constants.get(user_id, {})
-    cube_volume_liters = constants.get("cube_volume", 50)  # Стандартное значение: 50 л
+    # Если константы не переданы, используем значения по умолчанию
+    if constants is None:
+        constants = get_default_constants()
+
+    # Извлекаем константы
+    cube_volume = constants["cube_volume"]
 
     # Определяем коэффициент скорости от объема
-    if 20 <= cube_volume_liters <= 37:
+    if 20 <= cube_volume <= 37:
         speed_coefficient = 700
-    elif 50 <= cube_volume_liters <= 70:
+    elif 37 < cube_volume <= 50:
         speed_coefficient = 600
-    elif 70 < cube_volume_liters <= 100:
+    elif 50 < cube_volume <= 100:
         speed_coefficient = 500
     else:
         raise ValueError("Объем куба вне допустимого диапазона (20–100 литров).")
-
-    # Корректируем скорость отбора с учетом количества залитого спирта-сырца
-    spirit_ratio = raw_spirit_liters / cube_volume_liters  # Соотношение спирта к объему куба
-    if spirit_ratio < 0.5:
-        speed_coefficient *= 0.8  # Уменьшаем скорость, если спирта мало
-    elif spirit_ratio > 1.0:
-        speed_coefficient *= 1.2  # Увеличиваем скорость, если спирта много
 
     # Выполняем расчет скорости отбора по формуле:
     speed = (raw_spirit_liters * 0.35 / speed_coefficient) * 60
