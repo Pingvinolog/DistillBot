@@ -80,14 +80,14 @@ def show_constants(message):
         bot.send_message(chat_id, "У вас пока нет сохраненных констант. Используются стандартные значения.")
         constants = get_default_constants()
     # Формируем сообщение с текущими константами
-        response = (
-            f"Текущие константы:\n"
-            f"Объем куба: {constants['cube_volume']} л\n"
-            f"Процент голов: {constants['head_percentage']}%\n"
-            f"Процент тела: {constants['body_percentage']}%\n"
-            f"Процент предхвостьев: {constants['pre_tail_percentage']}%\n"
-            f"Процент хвостов: {constants['tail_percentage']}%\n"
-            f"Средняя крепость голов: {constants['average_head_strength']}%\n"
+    response = (
+        f"Текущие константы:\n"
+        f"Объем куба: {constants['cube_volume']} л\n"
+        f"Процент голов: {constants['head_percentage']}%\n"
+        f"Процент тела: {constants['body_percentage']}%\n"
+        f"Процент предхвостьев: {constants['pre_tail_percentage']}%\n"
+        f"Процент хвостов: {constants['tail_percentage']}%\n"
+        f"Средняя крепость голов: {constants['average_head_strength']}%\n"
         )
     bot.send_message(message.chat.id, response)
 
@@ -104,12 +104,15 @@ def set_constants(message):
 
 @bot.message_handler(commands=['report'])
 def generate_report(message):
-    # Устанавливаем состояние пользователя
-    constants = user_constants.get(message.chat.id, {})
+    chat_id = message.chat.id  # ID чата пользователя
+
+    # Проверяем наличие сохраненных данных
+    constants = user_constants.get(chat_id, {})
     if not constants:
-        bot.send_message(message.chat.id, "У вас пока нет сохраненных данных для отчета.")
+        bot.send_message(chat_id, "У вас пока нет сохраненных данных для отчета.")
         return
 
+    # Извлекаем константы
     cube_volume = constants["cube_volume"]
     head_percentage = constants["head_percentage"]
     body_percentage = constants["body_percentage"]
@@ -120,17 +123,26 @@ def generate_report(message):
     # Рассчитываем объемы фракций
     head_volume, body_volume, pre_tail_volume, tail_volume = calculate_fractions(cube_volume, constants)
 
+    # Рассчитываем скорость отбора
+    raw_spirit_volume = cube_volume * 0.8  # Объем спирта-сырца (80% от объема куба)
+    speed, max_speed = calculate_speed(chat_id, raw_spirit_volume)
+
+    # Формируем отчет
     response = (
         f"Отчет по последнему расчету:\n"
         f"Объем куба: {cube_volume} л\n"
-        f"Объем спирта-сырца: {cube_volume * 0.8:.2f} л\n"
+        f"Объем спирта-сырца: {raw_spirit_volume:.2f} л\n"
         f"Головы: {head_volume:.2f} л ({head_percentage}%)\n"
         f"Тело: {body_volume:.2f} л ({body_percentage}%)\n"
         f"Предхвостья: {pre_tail_volume:.2f} л ({pre_tail_percentage}%)\n"
         f"Хвосты: {tail_volume:.2f} л ({tail_percentage}%)\n"
         f"Средняя крепость голов: {average_head_strength}%\n"
+        f"Минимальная скорость отбора: {speed:.2f} л/ч\n"
+        f"Максимальная скорость отбора: {max_speed:.2f} л/ч\n"
     )
-    bot.send_message(message.chat.id, response)
+
+    # Отправляем отчет пользователю
+    bot.send_message(chat_id, response)
 
 @bot.message_handler(func=lambda m: True)
 def handle_input(message):
