@@ -1,3 +1,5 @@
+from bot_handlers import user_constants
+
 def linear_interpolation(x, x1, x2, y1, y2):
     """
     Выполняет линейную интерполяцию для заданных значений.
@@ -93,13 +95,17 @@ def calculate_fractions(total_volume_liters, alcohol_content):
     }
 
 
-def calculate_speed(cube_volume_liters, raw_spirit_liters):
+def calculate_speed(user_id, raw_spirit_liters):
     """
     Рассчитывает скорость отбора на основе объема куба и количества залитого спирта-сырца.
-    :param cube_volume_liters: Объем куба (л).
+    :param user_id: ID пользователя.
     :param raw_spirit_liters: Количество залитого спирта-сырца (л).
-    :return: Скорость отбора (л/ч).
+    :return: Минимальная скорость (л/ч) и максимальная скорость (л/ч).
     """
+    # Получаем объем куба из констант пользователя
+    constants = user_constants.get(user_id, {})
+    cube_volume_liters = constants.get("cube_volume", 50)  # Стандартное значение: 50 л
+
     # Определяем коэффициент скорости от объема
     if 20 <= cube_volume_liters <= 37:
         speed_coefficient = 700
@@ -119,6 +125,6 @@ def calculate_speed(cube_volume_liters, raw_spirit_liters):
 
     # Выполняем расчет скорости отбора по формуле:
     speed = (raw_spirit_liters * 0.35 / speed_coefficient) * 60
-    max_speed = speed * 2  # Определяем max_speed
+    max_speed = speed * 2  # Максимальная скорость в два раза больше минимальной
 
     return speed, max_speed
