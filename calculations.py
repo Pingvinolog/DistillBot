@@ -1,5 +1,3 @@
-from bot_handlers import user_constants
-
 def linear_interpolation(x, x1, x2, y1, y2):
     """
     Выполняет линейную интерполяцию для заданных значений.
