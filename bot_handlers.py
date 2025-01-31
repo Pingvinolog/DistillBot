@@ -76,24 +76,16 @@ def show_constants(message):
     constants = user_constants.get(message.chat.id, {})
     if not constants:
         bot.send_message(message.chat.id, "У вас пока нет сохраненных констант. Используются стандартные значения.")
-        constants = {
-            "cube_volume": 50,
-            "head_percentage": 5,
-            "body_percentage": 20,
-            "pre_tail_percentage": 2,
-            "tail_percentage": 10,
-            "average_head_strength": 81.5,
-        }
-
-    response = (
-        f"Текущие константы:\n"
-        f"Объем куба: {constants['cube_volume']} л\n"
-        f"Процент голов: {constants['head_percentage']}%\n"
-        f"Процент тела: {constants['body_percentage']}%\n"
-        f"Процент предхвостьев: {constants['pre_tail_percentage']}%\n"
-        f"Процент хвостов: {constants['tail_percentage']}%\n"
-        f"Средняя крепость голов: {constants['average_head_strength']}%\n"
-    )
+        constants = user_constants.get(message.chat.id, get_default_constants())  # Получаем константы пользователя или значения по умолчанию
+        response = (
+            f"Текущие константы:\n"
+            f"Объем куба: {constants['cube_volume']} л\n"
+            f"Процент голов: {constants['head_percentage']}%\n"
+            f"Процент тела: {constants['body_percentage']}%\n"
+            f"Процент предхвостьев: {constants['pre_tail_percentage']}%\n"
+            f"Процент хвостов: {constants['tail_percentage']}%\n"
+            f"Средняя крепость голов: {constants['average_head_strength']}%\n"
+        )
     bot.send_message(message.chat.id, response)
 
 
