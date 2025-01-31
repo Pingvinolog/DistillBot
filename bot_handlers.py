@@ -66,7 +66,7 @@ def speed_start(message):
     # Устанавливаем состояние пользователя
     user_states[message.chat.id] = "awaiting_speed_input"
     bot.send_message(message.chat.id,
-                     "Введите количество залитого спирта-сырца (л)(например: 47):")
+                     "Введите количество залитого спирта-сырца (л) (например: 47):")
 
 
 @bot.message_handler(commands=['constants'])
@@ -206,10 +206,10 @@ def handle_input(message):
         elif state == "awaiting_speed_input":
             try:
                 # Разбиваем ввод на значения
-                raw_spirit_liters = map(float, message.text.replace(",", ".").split())
+                raw_spirit_liters = list(map(float, message.text.replace(",", ".").split()))
 
                 # Выполняем расчет скорости отбора
-                speed, max_speed = calculate_speed(chat_id, raw_spirit_liters)
+                speed, max_speed = calculate_speed(chat_id, raw_spirit_liters[0])
 
                 # Отправляем результат пользователю
                 bot.send_message(chat_id,
