@@ -72,11 +72,14 @@ def speed_start(message):
 @bot.message_handler(commands=['constants'])
 def show_constants(message):
     # Устанавливаем состояние пользователя
-    user_states[message.chat.id] = "awaiting_constants_input"
-    constants = user_constants.get(message.chat.id, {})
+    chat_id = message.chat.id  # ID чата пользователя
+
+    # Пытаемся получить константы пользователя или используем значения по умолчанию
+    constants = user_constants.get(chat_id)
     if not constants:
-        bot.send_message(message.chat.id, "У вас пока нет сохраненных констант. Используются стандартные значения.")
-        constants = user_constants.get(message.chat.id, get_default_constants())  # Получаем константы пользователя или значения по умолчанию
+        bot.send_message(chat_id, "У вас пока нет сохраненных констант. Используются стандартные значения.")
+        constants = get_default_constants()
+    # Формируем сообщение с текущими константами
         response = (
             f"Текущие константы:\n"
             f"Объем куба: {constants['cube_volume']} л\n"
@@ -220,8 +223,8 @@ def handle_input(message):
                     raise ValueError("Объем куба должен быть в диапазоне 20–100 литров.")
                 if not all(0 <= x <= 100 for x in [head, body, pre_tail, tail]):
                     raise ValueError("Проценты фракций должны быть в диапазоне 0–100%.")
-                if not (0 <= avg_head_strength <= 100):
-                    raise ValueError("Средняя крепость голов должна быть в диапазоне 0–100%.")
+                if not (76 <= avg_head_strength <= 95):
+                    raise ValueError("Средняя крепость голов должна быть в диапазоне 76–95%.")
                 user_constants[chat_id] = {
                     "cube_volume": cube_volume,
                     "head_percentage": head,
@@ -231,14 +234,13 @@ def handle_input(message):
                     "average_head_strength": avg_head_strength,
                 }
                 bot.send_message(chat_id, "Константы успешно обновлены!")
+                # Сбрасываем состояние пользователя
+                del user_states[chat_id]
 
             except ValueError as e:
                 bot.send_message(chat_id, f"Ошибка ввода: {e}")
             except Exception as e:
                 bot.send_message(chat_id, "Произошла неизвестная ошибка. Попробуйте снова.")
-
-                # Сбрасываем состояние пользователя
-                del user_states[chat_id]
 
     else:
         bot.send_message(chat_id, "Неизвестная команда. Воспользуйтесь /start для просмотра доступных команд.")
