@@ -190,14 +190,23 @@ def correct_for_temperature(alcohol_content, distillate_temp):
         logging.error(f"Ошибка в correct_for_temperature: {e}")
         raise
 
-def calculate_fractions(cube_volume, constants):
+
+def calculate_fractions(user_id, total_volume_liters, alcohol_content):
     """
-    Рассчитывает объемы фракций дистиллята на основе объема куба и констант пользователя.
-    :param cube_volume: Объем куба (л).
-    :param constants: Словарь с константами пользователя.
+    Рассчитывает объемы фракций дистиллята на основе констант пользователя или значений по умолчанию.
+    :param user_id: ID пользователя (строка).
+    :param total_volume_liters: Общий объем спиртосодержащей смеси (л).
+    :param alcohol_content: Крепость спиртосодержащей смеси (%).
     :return: Словарь с объемами фракций.
     """
+    # Преобразуем user_id в строку для работы с JSON
+    user_id = str(user_id)
+
+    # Получаем константы пользователя или используем значения по умолчанию
+    constants = user_constants.get(user_id, get_default_constants())
+
     # Извлекаем константы
+    cube_volume = constants["cube_volume"]
     head_percentage = constants["head_percentage"]
     body_percentage = constants["body_percentage"]
     pre_tail_percentage = constants["pre_tail_percentage"]
@@ -205,15 +214,15 @@ def calculate_fractions(cube_volume, constants):
     average_head_strength = constants["average_head_strength"]
 
     # Переводим литры в миллилитры
-    total_volume_ml = cube_volume * 1000
-    absolute_alcohol_ml = total_volume_ml * average_head_strength / 96.6
+    total_volume_ml = total_volume_liters * 1000
+    absolute_alcohol_ml = total_volume_ml * alcohol_content / 96.6
 
     # Расчет объемов фракций
-    heads_by_volume_ml = (total_volume_ml * head_percentage / 100)  # Процент голов
-    heads_by_alcohol_ml = absolute_alcohol_ml * 0.15  # 15% от АС
-    body_ml = total_volume_ml * body_percentage / 100  # Процент тела
-    pre_tails_ml = total_volume_ml * pre_tail_percentage / 100  # Процент предхвостов
-    tails_ml = total_volume_ml * tail_percentage / 100  # Процент хвостов
+    heads_by_volume_ml = (total_volume_ml * head_percentage / 100)  # Процент голов от объема СС
+    heads_by_alcohol_ml = absolute_alcohol_ml * (head_percentage / 100)  # Процент голов от АС
+    body_ml = total_volume_ml * (body_percentage / 100)  # Процент тела от объема СС
+    pre_tails_ml = total_volume_ml * (pre_tail_percentage / 100)  # Процент предхвостьев от объема СС
+    tails_ml = total_volume_ml * (tail_percentage / 100)  # Процент хвостов от объема СС
 
     # Переводим обратно в литры
     return {
@@ -434,7 +443,7 @@ def handle_input(message):
                 total_volume_liters, alcohol_content = map(float, message.text.replace(",", ".").split())
 
                 # Выполняем расчет фракций
-                fractions = calculate_fractions(total_volume_liters, alcohol_content)
+                fractions = calculate_fractions(chat_id, total_volume_liters, alcohol_content)
                 response = (
                     f"Объем абсолютного спирта: {fractions['absolute_alcohol']:.2f} л\n"
                     f"Головы (по объему): {fractions['heads_by_volume']:.2f} л\n"
