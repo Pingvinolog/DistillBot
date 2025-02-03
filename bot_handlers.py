@@ -21,14 +21,9 @@ user_states = {}
 
 # Загрузка данных из базы
 def load_from_database():
-    """
-    Загружает данные из базы данных (JSON-файл).
-    Если файл пуст или содержит некорректные данные, возвращает пустой словарь.
-    """
     if not os.path.exists(DATABASE_FILE):
         logging.info("Файл базы данных не найден. Возвращаю пустой словарь.")
         return {}
-
     try:
         with open(DATABASE_FILE, "r", encoding="utf-8") as file:
             data = file.read()
@@ -178,33 +173,14 @@ def calculate_fractions(user_id, total_volume_liters, alcohol_content, user_cons
 
 
 def calculate_speed(user_id, raw_spirit_liters):
-    """
-    Рассчитывает скорость отбора на основе объема куба и количества залитого спирта-сырца.
-    :param user_id: ID пользователя (строка).
-    :param raw_spirit_liters: Количество залитого спирта-сырца (л).
-    :return: Минимальная скорость (л/ч) и максимальная скорость (л/ч).
-    """
-    # Преобразуем user_id в строку для работы с JSON
     user_id = str(user_id)
-
-    # Получаем константы пользователя или используем значения по умолчанию
     constants = user_constants.get(user_id, get_default_constants())
-    cube_volume = constants.get("cube_volume", 50)  # Объем куба (по умолчанию 50 л)
-
-    # Определяем коэффициент скорости от объема
-    if 20 <= cube_volume <= 37:
-        speed_coefficient = 700
-    elif 37 < cube_volume <= 50:
-        speed_coefficient = 600
-    elif 50 < cube_volume <= 100:
-        speed_coefficient = 500
-    else:
+    cube_volume = constants.get("cube_volume", 50)
+    if not (20 <= cube_volume <= 100):
         raise ValueError("Объем куба вне допустимого диапазона (20–100 литров).")
-
-    # Выполняем расчет скорости отбора по формуле:
+    speed_coefficient = 700 if 20 <= cube_volume <= 37 else 600 if 37 < cube_volume <= 50 else 500
     speed = (raw_spirit_liters * 0.35 / speed_coefficient) * 60
-    max_speed = speed * 2  # Максимальная скорость в два раза больше минимальной
-
+    max_speed = speed * 2
     return speed, max_speed
 # Расчеты
 
@@ -252,15 +228,16 @@ def speed_start(message):
 
 @bot.message_handler(commands=['constants'])
 def show_constants(message):
+    """
+    Показывает текущие константы пользователя.
+    Если константы не установлены, используются значения по умолчанию.
+    """
     chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
     # Устанавливаем состояние пользователя
     chat_id = message.chat.id  # ID чата пользователя
 
     # Пытаемся получить константы пользователя или используем значения по умолчанию
-    constants = user_constants.get(chat_id)
-    if not constants:
-        bot.send_message(chat_id, "У вас пока нет сохраненных констант. Используются стандартные значения.")
-        constants = get_default_constants()
+    constants = user_constants.get(chat_id, get_default_constants())
     # Формируем сообщение с текущими константами
     response = (
         f"Текущие константы:\n"
@@ -271,14 +248,14 @@ def show_constants(message):
         f"Процент хвостов: {constants['tail_percentage']}%\n"
         f"Средняя крепость голов: {constants['average_head_strength']}%\n"
         )
-    bot.send_message(message.chat.id, response)
+    bot.send_message(chat_id, response)
 
 
 @bot.message_handler(commands=['set_constants'])
 def set_constants(message):
     chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
     # Устанавливаем состояние пользователя
-    user_states[message.chat.id] = "awaiting_set_constants_input"
+    user_states[chat_id] = "awaiting_set_constants_input"
     bot.send_message(message.chat.id,
         "Введите новые значения через пробел в формате:\n"
         "объем_куба процент_голов процент_тела процент_предхвостьев процент_хвостов средняя_крепость_голов\n"
@@ -329,13 +306,9 @@ def generate_report(message):
 
 @bot.message_handler(func=lambda m: True)
 def handle_input(message):
-    # Преобразуем ID в строку для JSON
     chat_id = str(message.chat.id)
-
-    # Проверяем состояние пользователя
     if chat_id in user_states:
         state = user_states[chat_id]
-
         if state == "awaiting_alcohol_input":
             try:
                 # Разбиваем ввод на значения
