@@ -111,27 +111,46 @@ def find_closest_values(value, data):
             return data[i], data[i + 1]
     raise ValueError("Значение вне диапазона данных.")
 
+
 def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     """
     Рассчитывает содержание спирта в дистилляте.
     Учитывает зависимость пара от температуры жидкости.
     """
-    cube_temps = list(liquid_table.keys())
-    cube_temp1, cube_temp2 = find_closest_values(cube_temp, cube_temps)
-    liquid_alcohol1 = liquid_table[cube_temp1]
-    liquid_alcohol2 = liquid_table[cube_temp2]
-    liquid_alcohol = linear_interpolation(cube_temp, cube_temp1, cube_temp2, liquid_alcohol1, liquid_alcohol2)
+    try:
+        logging.info(f"Расчет содержания спирта: cube_temp={cube_temp}, vapor_temp={vapor_temp}")
 
-    # Логируем значение liquid_alcohol
-    logging.info(f"Спиртуозность в жидкости: {liquid_alcohol:.2f}%")
+        # Интерполяция для жидкости
+        cube_temps = list(liquid_table.keys())
+        logging.debug(f"Температуры жидкости: {cube_temps}")
+        cube_temp1, cube_temp2 = find_closest_values(cube_temp, cube_temps)
+        logging.debug(f"Ближайшие температуры жидкости: {cube_temp1}, {cube_temp2}")
 
-    vapor_temps = list(vapor_table.keys())
-    vapor_temp1, vapor_temp2 = find_closest_values(vapor_temp, vapor_temps)
-    vapor_alcohol1 = vapor_table[vapor_temp1]
-    vapor_alcohol2 = vapor_table[vapor_temp2]
-    vapor_alcohol = linear_interpolation(vapor_temp, vapor_temp1, vapor_temp2, vapor_alcohol1, vapor_alcohol2)
+        liquid_alcohol1 = liquid_table[cube_temp1]
+        liquid_alcohol2 = liquid_table[cube_temp2]
+        logging.debug(f"Содержание спирта в жидкости: {liquid_alcohol1}, {liquid_alcohol2}")
 
-    return vapor_alcohol
+        liquid_alcohol = linear_interpolation(cube_temp, cube_temp1, cube_temp2, liquid_alcohol1, liquid_alcohol2)
+        logging.debug(f"Интерполированное содержание спирта в жидкости: {liquid_alcohol}")
+
+        # Интерполяция для пара
+        vapor_temps = list(vapor_table.keys())
+        logging.debug(f"Температуры пара: {vapor_temps}")
+        vapor_temp1, vapor_temp2 = find_closest_values(vapor_temp, vapor_temps)
+        logging.debug(f"Ближайшие температуры пара: {vapor_temp1}, {vapor_temp2}")
+
+        vapor_alcohol1 = vapor_table[vapor_temp1]
+        vapor_alcohol2 = vapor_table[vapor_temp2]
+        logging.debug(f"Содержание спирта в паре: {vapor_alcohol1}, {vapor_alcohol2}")
+
+        vapor_alcohol = linear_interpolation(vapor_temp, vapor_temp1, vapor_temp2, vapor_alcohol1, vapor_alcohol2)
+        logging.debug(f"Интерполированное содержание спирта в паре: {vapor_alcohol}")
+
+        return vapor_alcohol
+    except Exception as e:
+        logging.error(f"Ошибка в calculate_alcohol_content: {e}")
+        raise
+
 
 def correct_for_temperature(alcohol_content, distillate_temp):
     """
@@ -140,19 +159,36 @@ def correct_for_temperature(alcohol_content, distillate_temp):
     :param distillate_temp: Температура дистиллята (°C).
     :return: Скорректированная спиртуозность при 20°C (%).
     """
-    correction_table = {
-        10: 0.6,
-        15: 0.4,
-        20: 0.0,
-        25: -0.3,
-        30: -0.6
-    }
-    temp_values = list(correction_table.keys())
-    temp1, temp2 = find_closest_values(distillate_temp, temp_values)
-    correction1 = correction_table[temp1]
-    correction2 = correction_table[temp2]
-    correction = linear_interpolation(distillate_temp, temp1, temp2, correction1, correction2)
-    return alcohol_content + correction
+    try:
+        logging.info(
+            f"Корректировка спиртуозности: alcohol_content={alcohol_content}, distillate_temp={distillate_temp}")
+
+        correction_table = {
+            10: 0.6,
+            15: 0.4,
+            20: 0.0,
+            25: -0.3,
+            30: -0.6
+        }
+        temp_values = list(correction_table.keys())
+        logging.debug(f"Температуры для коррекции: {temp_values}")
+        temp1, temp2 = find_closest_values(distillate_temp, temp_values)
+        logging.debug(f"Ближайшие температуры для коррекции: {temp1}, {temp2}")
+
+        correction1 = correction_table[temp1]
+        correction2 = correction_table[temp2]
+        logging.debug(f"Коэффициенты коррекции: {correction1}, {correction2}")
+
+        correction = linear_interpolation(distillate_temp, temp1, temp2, correction1, correction2)
+        logging.debug(f"Интерполированный коэффициент коррекции: {correction}")
+
+        corrected_alcohol = alcohol_content + correction
+        logging.debug(f"Скорректированная спиртуозность: {corrected_alcohol}")
+
+        return corrected_alcohol
+    except Exception as e:
+        logging.error(f"Ошибка в correct_for_temperature: {e}")
+        raise
 
 def calculate_fractions(user_id, total_volume_liters, alcohol_content, user_constants):
     """
@@ -349,8 +385,16 @@ def handle_input(message):
         state = user_states[chat_id]
         if state == "awaiting_alcohol_input":
             try:
+                logging.info(f"Обработка ввода для расчета спиртуозности: {message.text}")
                 # Разбиваем ввод на значения
                 cube_temp, vapor_temp, distillate_temp = map(float, message.text.replace(",", ".").split())
+                # Проверяем диапазоны температур
+                if not (78.15 <= cube_temp <= 100):
+                    raise ValueError("Температура в кубе должна быть в диапазоне 78.15–100°C.")
+                if not (78.15 <= vapor_temp <= 100):
+                    raise ValueError("Температура пара должна быть в диапазоне 78.15–100°C.")
+                if not (10 <= distillate_temp <= 30):
+                    raise ValueError("Температура дистиллята должна быть в диапазоне 10–30°C.")
 
                 # Получаем таблицы равновесия
                 liquid_table = get_liquid_table()
