@@ -358,10 +358,11 @@ def set_constants(message):
         "Пример: 50 5 20 2 10 81.5"
     )
 
+
 @bot.message_handler(commands=['report'])
 def generate_report(message):
-    chat_id = message.chat.id  # ID чата пользователя
-
+    # ID чата пользователя
+    chat_id = message.chat.id
     # Проверяем наличие сохраненных данных
     constants = user_constants.get(chat_id, {})
     if not constants:
@@ -376,8 +377,16 @@ def generate_report(message):
     tail_percentage = constants["tail_percentage"]
     average_head_strength = constants["average_head_strength"]
 
+    # Определяем объем спиртосодержащей смеси и крепость
+    total_volume_liters = cube_volume  # Предполагаем, что объем смеси равен объему куба
+    alcohol_content = 29  # Крепость по умолчанию (можно сделать настраиваемой)
+
     # Рассчитываем объемы фракций
-    head_volume, body_volume, pre_tail_volume, tail_volume = calculate_fractions(cube_volume, constants)
+    fractions = calculate_fractions(chat_id, total_volume_liters, alcohol_content, user_constants)
+    head_volume = fractions["heads_by_volume"]
+    body_volume = fractions["body"]
+    pre_tail_volume = fractions["pre_tails"]
+    tail_volume = fractions["tails"]
 
     # Рассчитываем скорость отбора
     raw_spirit_volume = cube_volume * 0.85  # Объем спирта-сырца (85% от объема куба)
