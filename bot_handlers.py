@@ -367,7 +367,7 @@ def help_command(message):
     """
     # Создаем клавиатуру с кнопкой
     keyboard = InlineKeyboardMarkup()
-    help_button = InlineKeyboardButton("Открыть инструкцию", url="https://telegra.ph/Your-Bot-Guide")
+    help_button = InlineKeyboardButton("Открыть инструкцию", url="https://telegra.ph/Kak-polzovatsya-botom-dlya-rascheta-drobnoj-distillyacii-02-03")
     keyboard.add(help_button)
 
     # Отправляем сообщение с кнопкой
