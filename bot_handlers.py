@@ -266,20 +266,29 @@ def start(message):
     bot.send_message(message.chat.id, main_menu())
 
 
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+
+
 @bot.message_handler(commands=['alcohol_calculation'])
 def calculate_start(message):
+    chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
+    # Логируем начало процесса расчета спиртуозности
+    logging.info(f"Пользователь {chat_id} начал расчет спиртуозности.")
     # Устанавливаем состояние пользователя
-    user_states[message.chat.id] = "awaiting_alcohol_input"
-    bot.send_message(
-        message.chat.id,
-        "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):"
-    )
+    user_states[chat_id] = "awaiting_alcohol_input"
+    # Отправляем сообщение пользователю
+    bot.send_message(chat_id,
+                     "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
 
 @bot.message_handler(commands=['fractions'])
 def fractions_start(message):
+    chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
     # Устанавливаем состояние пользователя
-    user_states[message.chat.id] = "awaiting_fractions_input"
-    bot.send_message(message.chat.id,
+    user_states[chat_id] = "awaiting_fractions_input"
+    bot.send_message(chat_id,
                      "Введите объем спиртосодержащей смеси (л), её крепость (%) через пробел (например: 47 29):")
 
 @bot.message_handler(commands=['speed'])
