@@ -235,7 +235,9 @@ def calculate_start(message):
     # Устанавливаем состояние пользователя
     user_states[message.chat.id] = "awaiting_alcohol_input"
     bot.send_message(
-        message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
+        message.chat.id,
+        "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):"
+    )
 
 @bot.message_handler(commands=['fractions'])
 def fractions_start(message):
@@ -366,7 +368,6 @@ def handle_input(message):
 
             except ValueError:
                 bot.send_message(chat_id, "Ошибка ввода: Введите три числа через пробел.")
-
             except Exception as e:
                 bot.send_message(chat_id, f"Произошла ошибка: {e}")
 
