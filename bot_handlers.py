@@ -47,6 +47,30 @@ def save_to_database(data):
     except Exception as e:
         logging.error(f"Ошибка при сохранении данных: {e}")
 
+def print_database_content():
+    """
+    Выводит содержимое базы данных.
+    """
+    try:
+        with open(DATABASE_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            if not data:
+                return "База данных пуста."
+            # Формируем строку с содержимым базы данных
+            content = "Содержимое базы данных:\n"
+            for user_id, constants in data.items():
+                content += f"Пользователь ID: {user_id}\n"
+                content += f"  Объем куба: {constants.get('cube_volume')} л\n"
+                content += f"  Процент голов: {constants.get('head_percentage')}%\n"
+                content += f"  Процент тела: {constants.get('body_percentage')}%\n"
+                content += f"  Процент предхвостьев: {constants.get('pre_tail_percentage')}%\n"
+                content += f"  Процент хвостов: {constants.get('tail_percentage')}%\n"
+                content += f"  Средняя крепость голов: {constants.get('average_head_strength')}%\n"
+            return content
+    except Exception as e:
+        logging.error(f"Ошибка при чтении базы данных: {e}")
+        return "Не удалось прочитать базу данных."
+
 # Глобальная переменная для хранения данных пользователей
 user_constants = load_from_database()
 
@@ -233,30 +257,42 @@ def show_constants(message):
     Если константы не установлены, используются значения по умолчанию.
     """
     chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
-    # Устанавливаем состояние пользователя
-    chat_id = message.chat.id  # ID чата пользователя
 
     # Пытаемся получить константы пользователя или используем значения по умолчанию
-    constants = user_constants.get(chat_id, get_default_constants())
+    constants = user_constants.get(chat_id)
+
+    if not constants:
+        bot.send_message(chat_id, "У вас пока нет сохраненных констант. Используются стандартные значения.")
+        constants = get_default_constants()
+
     # Формируем сообщение с текущими константами
     response = (
         f"Текущие константы:\n"
-        f"Объем куба: {constants['cube_volume']} л\n"
-        f"Процент голов: {constants['head_percentage']}%\n"
-        f"Процент тела: {constants['body_percentage']}%\n"
-        f"Процент предхвостьев: {constants['pre_tail_percentage']}%\n"
-        f"Процент хвостов: {constants['tail_percentage']}%\n"
-        f"Средняя крепость голов: {constants['average_head_strength']}%\n"
-        )
+        f"Объем куба: {constants.get('cube_volume', 'Не задано')} л\n"
+        f"Процент голов: {constants.get('head_percentage', 'Не задано')}%\n"
+        f"Процент тела: {constants.get('body_percentage', 'Не задано')}%\n"
+        f"Процент предхвостьев: {constants.get('pre_tail_percentage', 'Не задано')}%\n"
+        f"Процент хвостов: {constants.get('tail_percentage', 'Не задано')}%\n"
+        f"Средняя крепость голов: {constants.get('average_head_strength', 'Не задано')}%\n"
+    )
     bot.send_message(chat_id, response)
 
 
 @bot.message_handler(commands=['set_constants'])
 def set_constants(message):
     chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
+
+    # Проверяем, находится ли пользователь уже в каком-либо состоянии
+    if chat_id in user_states:
+        bot.send_message(chat_id, "Вы уже находитесь в процессе выполнения другой команды. Завершите её или начните заново.")
+        return
+
     # Устанавливаем состояние пользователя
     user_states[chat_id] = "awaiting_set_constants_input"
-    bot.send_message(message.chat.id,
+    logging.info(f"Пользователь {chat_id} начал процесс установки новых констант.")
+
+    bot.send_message(
+        chat_id,
         "Введите новые значения через пробел в формате:\n"
         "объем_куба процент_голов процент_тела процент_предхвостьев процент_хвостов средняя_крепость_голов\n"
         "Пример: 50 5 20 2 10 81.5"
@@ -408,7 +444,14 @@ def handle_input(message):
                 }
                 # Сохраняем данные в файл
                 save_to_database(user_constants)
+
+                # Выводим сообщение об успешном обновлении констант
                 bot.send_message(chat_id, "Константы успешно обновлены!")
+
+                # Выводим содержимое базы данных
+                database_content = print_database_content()
+                bot.send_message(chat_id, database_content)
+
                 # Сбрасываем состояние пользователя
                 del user_states[chat_id]
 
