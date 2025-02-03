@@ -3,13 +3,17 @@ import json
 import telebot
 from flask import Flask, request
 from tables import get_liquid_table, get_vapor_table
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
 
 # Токен бота из переменных среды
 TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# Файл базы данных
+# Путь к файлу базы данных
 DATABASE_FILE = "user_data.json"
 
 # Словарь для хранения состояния пользователей
@@ -17,15 +21,36 @@ user_states = {}
 
 # Загрузка данных из базы
 def load_from_database():
+    """
+    Загружает данные из базы данных (JSON-файл).
+    Если файл пуст или содержит некорректные данные, возвращает пустой словарь.
+    """
     if not os.path.exists(DATABASE_FILE):
+        logging.info("Файл базы данных не найден. Возвращаю пустой словарь.")
         return {}
-    with open(DATABASE_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
 
-# Сохранение данных в базу
+    try:
+        with open(DATABASE_FILE, "r", encoding="utf-8") as file:
+            data = file.read()
+            if not data.strip():
+                logging.info("Файл базы данных пуст. Возвращаю пустой словарь.")
+                return {}
+            return json.loads(data)
+    except json.JSONDecodeError:
+        logging.error("Ошибка декодирования JSON. Возвращаю пустой словарь.")
+        return {}
+
+
 def save_to_database(data):
-    with open(DATABASE_FILE, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+    """
+    Сохраняет данные в базу данных (JSON-файл).
+    """
+    try:
+        with open(DATABASE_FILE, "w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+        logging.info("Данные успешно сохранены в базу данных.")
+    except Exception as e:
+        logging.error(f"Ошибка при сохранении данных: {e}")
 
 # Глобальная переменная для хранения данных пользователей
 user_constants = load_from_database()
