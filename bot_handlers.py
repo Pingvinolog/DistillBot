@@ -57,9 +57,9 @@ def print_database_content():
             if not data:
                 return "База данных пуста."
             # Формируем строку с содержимым базы данных
-            content = "Содержимое базы данных:\n"
+            content = "Вот что мы сохранили:\n"
             for user_id, constants in data.items():
-                content += f"Пользователь ID: {user_id}\n"
+                content += f"  Пользователь ID: {user_id}\n"
                 content += f"  Объем куба: {constants.get('cube_volume')} л\n"
                 content += f"  Процент голов: {constants.get('head_percentage')}%\n"
                 content += f"  Процент тела: {constants.get('body_percentage')}%\n"
@@ -121,6 +121,9 @@ def calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table):
     liquid_alcohol1 = liquid_table[cube_temp1]
     liquid_alcohol2 = liquid_table[cube_temp2]
     liquid_alcohol = linear_interpolation(cube_temp, cube_temp1, cube_temp2, liquid_alcohol1, liquid_alcohol2)
+
+    # Логируем значение liquid_alcohol
+    logging.info(f"Спиртуозность в жидкости: {liquid_alcohol:.2f}%")
 
     vapor_temps = list(vapor_table.keys())
     vapor_temp1, vapor_temp2 = find_closest_values(vapor_temp, vapor_temps)
@@ -231,9 +234,8 @@ def start(message):
 def calculate_start(message):
     # Устанавливаем состояние пользователя
     user_states[message.chat.id] = "awaiting_alcohol_input"
-    bot.send_message(message.chat.id,
-                     "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
-
+    bot.send_message(
+        message.chat.id, "Введите температуры куба, пара и дистиллята через пробел (например: 84.8 82.2 15):")
 
 @bot.message_handler(commands=['fractions'])
 def fractions_start(message):
@@ -248,7 +250,6 @@ def speed_start(message):
     user_states[message.chat.id] = "awaiting_speed_input"
     bot.send_message(message.chat.id,
                      "Введите количество залитого спирта-сырца (л) (например: 47):")
-
 
 @bot.message_handler(commands=['constants'])
 def show_constants(message):
@@ -276,7 +277,6 @@ def show_constants(message):
         f"Средняя крепость голов: {constants.get('average_head_strength', 'Не задано')}%\n"
     )
     bot.send_message(chat_id, response)
-
 
 @bot.message_handler(commands=['set_constants'])
 def set_constants(message):
