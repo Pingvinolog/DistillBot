@@ -14,7 +14,7 @@ bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
 # Путь к файлу базы данных
-DATABASE_FILE = "user_data.json"
+DATABASE_FILE = os.path.join(os.getcwd(), "user_data.json")
 
 # Словарь для хранения состояния пользователей
 user_states = {}
@@ -37,10 +37,9 @@ def load_from_database():
 
 
 def save_to_database(data):
-    """
-    Сохраняет данные в базу данных (JSON-файл).
-    """
     try:
+        # Проверка данных на корректность
+        json.dumps(data)
         with open(DATABASE_FILE, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
         logging.info("Данные успешно сохранены в базу данных.")
