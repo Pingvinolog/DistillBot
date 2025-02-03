@@ -190,23 +190,14 @@ def correct_for_temperature(alcohol_content, distillate_temp):
         logging.error(f"Ошибка в correct_for_temperature: {e}")
         raise
 
-def calculate_fractions(user_id, total_volume_liters, alcohol_content, user_constants):
+def calculate_fractions(cube_volume, constants):
     """
-    Рассчитывает объемы фракций дистиллята на основе констант пользователя или значений по умолчанию.
-    :param user_id: ID пользователя (строка).
-    :param total_volume_liters: Общий объем спиртосодержащей смеси (л).
-    :param alcohol_content: Крепость спиртосодержащей смеси (%).
-    :param user_constants: Словарь с константами всех пользователей.
+    Рассчитывает объемы фракций дистиллята на основе объема куба и констант пользователя.
+    :param cube_volume: Объем куба (л).
+    :param constants: Словарь с константами пользователя.
     :return: Словарь с объемами фракций.
     """
-    # Преобразуем user_id в строку для работы с JSON
-    user_id = str(user_id)
-
-    # Получаем константы пользователя или используем значения по умолчанию
-    constants = user_constants.get(user_id, get_default_constants())
-
     # Извлекаем константы
-    cube_volume = constants["cube_volume"]
     head_percentage = constants["head_percentage"]
     body_percentage = constants["body_percentage"]
     pre_tail_percentage = constants["pre_tail_percentage"]
@@ -214,15 +205,15 @@ def calculate_fractions(user_id, total_volume_liters, alcohol_content, user_cons
     average_head_strength = constants["average_head_strength"]
 
     # Переводим литры в миллилитры
-    total_volume_ml = total_volume_liters * 1000
-    absolute_alcohol_ml = total_volume_ml * alcohol_content / 96.6
+    total_volume_ml = cube_volume * 1000
+    absolute_alcohol_ml = total_volume_ml * average_head_strength / 96.6
 
     # Расчет объемов фракций
-    heads_by_volume_ml = (total_volume_ml * head_percentage / 100)  # Процент голов от объема СС
-    heads_by_alcohol_ml = absolute_alcohol_ml * (head_percentage / 100)  # Процент голов от АС
-    body_ml = total_volume_ml * (body_percentage / 100)  # Процент тела от объема СС
-    pre_tails_ml = total_volume_ml * (pre_tail_percentage / 100)  # Процент предхвостьев от объема СС
-    tails_ml = total_volume_ml * (tail_percentage / 100)  # Процент хвостов от объема СС
+    heads_by_volume_ml = (total_volume_ml * head_percentage / 100)  # Процент голов
+    heads_by_alcohol_ml = absolute_alcohol_ml * 0.15  # 15% от АС
+    body_ml = total_volume_ml * body_percentage / 100  # Процент тела
+    pre_tails_ml = total_volume_ml * pre_tail_percentage / 100  # Процент предхвостов
+    tails_ml = total_volume_ml * tail_percentage / 100  # Процент хвостов
 
     # Переводим обратно в литры
     return {
@@ -286,6 +277,8 @@ def calculate_start(message):
 @bot.message_handler(commands=['fractions'])
 def fractions_start(message):
     chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
+    # Логируем начало процесса расчета раздела на фракции
+    logging.info(f"Пользователь {chat_id} начал расчет фракций.")
     # Устанавливаем состояние пользователя
     user_states[chat_id] = "awaiting_fractions_input"
     bot.send_message(chat_id,
@@ -293,9 +286,12 @@ def fractions_start(message):
 
 @bot.message_handler(commands=['speed'])
 def speed_start(message):
+    chat_id = str(message.chat.id)  # Преобразуем ID в строку для JSON
+    # Логируем начало процесса расчета скорости отбора
+    logging.info(f"Пользователь {chat_id} начал расчет скорости отбора.")
     # Устанавливаем состояние пользователя
-    user_states[message.chat.id] = "awaiting_speed_input"
-    bot.send_message(message.chat.id,
+    user_states[chat_id] = "awaiting_speed_input"
+    bot.send_message(chat_id,
                      "Введите количество залитого спирта-сырца (л) (например: 47):")
 
 @bot.message_handler(commands=['constants'])
