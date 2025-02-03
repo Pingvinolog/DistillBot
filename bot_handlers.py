@@ -15,6 +15,7 @@ app = Flask(__name__)
 
 # Путь к файлу базы данных
 DATABASE_FILE = os.path.join(os.getcwd(), "user_data.json")
+logging.info(f"Путь к файлу: {os.path.abspath(DATABASE_FILE)}")
 
 # Словарь для хранения состояния пользователей
 user_states = {}
