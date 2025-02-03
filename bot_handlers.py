@@ -394,6 +394,10 @@ def handle_input(message):
                     raise ValueError("Проценты фракций должны быть в диапазоне 0–100%.")
                 if not (76 <= avg_head_strength <= 95):
                     raise ValueError("Средняя крепость голов должна быть в диапазоне 76–95%.")
+                # Логируем обновленные константы
+                logging.info(f"Обновленные константы для chat_id {chat_id}: "
+                             f"cube_volume={cube_volume}, head={head}, body={body}, "
+                             f"pre_tail={pre_tail}, tail={tail}, avg_head_strength={avg_head_strength}")
                 user_constants[chat_id] = {
                     "cube_volume": cube_volume,
                     "head_percentage": head,
