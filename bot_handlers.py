@@ -178,6 +178,36 @@ def correct_for_temperature(alcohol_content, distillate_temp):
         raise
 
 
+def calculate_correction(cube_temp, vapor_temp, measured_alcohol_content, liquid_table, vapor_table):
+    """
+    Рассчитывает поправку для спиртуозности на основе показаний ареометра.
+    :param cube_temp: Температура в кубе (°C).
+    :param vapor_temp: Температура в паровой зоне (°C).
+    :param measured_alcohol_content: Показания спиртового ареометра (%).
+    :param liquid_table: Таблица равновесия для жидкости.
+    :param vapor_table: Таблица равновесия для пара.
+    :return: Поправка для спиртуозности (%).
+    """
+    # Рассчитываем теоретическую спиртуозность на основе температур
+    theoretical_alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
+
+    # Сравниваем теоретическое значение с показаниями ареометра
+    correction = measured_alcohol_content - theoretical_alcohol_content
+
+    return correction
+
+def apply_correction(alcohol_content, user_constants, chat_id):
+    """
+    Применяет сохраненную поправку к рассчитанной спиртуозности.
+    :param alcohol_content: Рассчитанная спиртуозность (%).
+    :param user_constants: Константы пользователя.
+    :param chat_id: ID чата пользователя.
+    :return: Скорректированная спиртуозность (%).
+    """
+    correction = user_constants.get(chat_id, {}).get("correction", 0.0)
+    return alcohol_content + correction
+
+
 def calculate_fractions(user_id, total_volume_liters, alcohol_content):
     """
     Рассчитывает объемы фракций дистиллята на основе констант пользователя или значений по умолчанию.
@@ -263,24 +293,18 @@ def main_menu():
     """
     return (
         "Этот бот создан для расчета дробной дистилляции. Выберите функцию из списка:\n"
-        "/alcohol_calculation — Рассчитать спиртуозность дистиллята.\n"
-        "/fractions — Расчет объемов фракций (головы, тело, предхвостья, хвосты).\n"
-        "/speed — Расчет скорости отбора.\n"
-        "/constants — Просмотр текущих констант (объем куба, проценты фракций).\n"
-        "/set_constants — Установка новых значений констант.\n"
+        "/alcohol_calculation — Рассчитать спиртуозность дистиллята\n"
+        "/fractions — Расчет объемов фракций (головы, тело, предхвостья, хвосты)\n"
+        "/speed — Расчет скорости отбора\n"
+        "/constants — Просмотр текущих констант (объем куба, проценты фракций)\n"
+        "/set_constants — Установка новых значений констант\n"
+        "/set_correction — Тест\n"
         "/help — Инструкция по работе с ботом.\n"
     )
 
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, main_menu())
-
-
-import logging
-
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-
 
 @bot.message_handler(commands=['alcohol_calculation'])
 def calculate_start(message):
@@ -359,6 +383,14 @@ def set_constants(message):
         "объем_куба процент_голов процент_тела процент_предхвостьев процент_хвостов средняя_крепость_голов\n"
         "Пример: 50 5 20 2 10 81.5"
     )
+
+@bot.message_handler(commands=['set_correction'])
+def set_correction(message):
+    chat_id = str(message.chat.id)
+    # Устанавливаем состояние пользователя
+    user_states[chat_id] = "awaiting_correction_input"
+    bot.send_message(chat_id, "Введите температуру куба, паровой зоны и показания ареометра через пробел (например: 84.8 82.2 78.5):")
+
 @bot.message_handler(commands=['help'])
 def help_command(message):
     """
@@ -401,10 +433,16 @@ def handle_input(message):
 
                 # Выполняем расчет спиртуозности
                 alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
+
+                # Корректируем спиртуозность для температуры дистиллята
                 corrected_alcohol = correct_for_temperature(alcohol_content, distillate_temp)
 
+                # Применяем поправку
+                chat_id = str(message.chat.id)
+                final_alcohol = apply_correction(corrected_alcohol, user_constants, chat_id)
+
                 # Отправляем результат пользователю
-                bot.send_message(chat_id, f"Спиртуозность при 20°C: {corrected_alcohol:.2f}%")
+                bot.send_message(chat_id, f"Спиртуозность при 20°C: {final_alcohol:.2f}%")
 
                 # Сбрасываем состояние пользователя
                 del user_states[chat_id]
@@ -504,6 +542,34 @@ def handle_input(message):
             except Exception as e:
                 bot.send_message(chat_id, "Произошла неизвестная ошибка. Попробуйте снова.")
 
+        elif state == "awaiting_correction_input":
+            try:
+                # Разбираем ввод пользователя
+                cube_temp, vapor_temp, measured_alcohol_content = map(float, message.text.replace(",", ".").split())
+
+                # Получаем таблицы равновесия
+                liquid_table = get_liquid_table()
+                vapor_table = get_vapor_table()
+
+                # Рассчитываем теоретическую спиртуозность
+                theoretical_alcohol_content = calculate_alcohol_content(cube_temp, vapor_temp, liquid_table, vapor_table)
+
+                # Вычисляем поправку
+                correction = measured_alcohol_content - theoretical_alcohol_content
+
+                # Сохраняем поправку для пользователя
+                user_constants.setdefault(chat_id, {})["correction"] = correction
+                save_to_database(user_constants)  # Сохраняем в базу данных
+
+                # Отправляем результат пользователю
+                bot.send_message(chat_id, f"Поправка успешно установлена: {correction:.2f}%")
+
+                # Сбрасываем состояние пользователя
+                del user_states[chat_id]
+            except ValueError:
+                bot.send_message(chat_id, "Ошибка ввода: Введите три числа через пробел.")
+            except Exception as e:
+                bot.send_message(chat_id, f"Произошла ошибка: {e}")
     else:
         bot.send_message(chat_id, "Неизвестная команда. Воспользуйтесь /start для просмотра доступных команд.")
 
